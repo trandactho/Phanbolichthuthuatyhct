@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.1 - Fix Modals & Cache)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.3 - Updated Time)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -70,7 +70,7 @@
         <!-- Action Toolbar Buttons -->
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center mb-3">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Ca Sáng: 07:30 - 11:30 | Ca Chiều: 13:00 - Cứng 19:00)</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Ca Sáng: 07:02 - 12:30 | Ca Chiều: 13:00 - 19:00)</p>
                 <span id="onlineTimeStatus" class="text-[11px] font-medium text-emerald-600 flex items-center gap-1">🌐 Đang đồng bộ giờ online...</span>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
@@ -180,8 +180,8 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">Ca thực hiện mong muốn</label>
                         <select id="pShiftChoice" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold text-indigo-700">
-                            <option value="auto">⚡ Tự động phân bổ (Nếu > 11:30 tự sang chiều)</option>
-                            <option value="sang">🌅 Ca Sáng (07:30 - 11:30)</option>
+                            <option value="auto">⚡ Tự động phân bổ (Nếu > 12:30 tự sang chiều)</option>
+                            <option value="sang">🌅 Ca Sáng (07:02 - 12:30)</option>
                             <option value="chieu">🌇 Ca Chiều (13:00 - 19:00)</option>
                         </select>
                     </div>
@@ -211,21 +211,38 @@
         </div>
     </div>
 
-    <!-- ================= MODAL: CẤU HÌNH ================= -->
+    <!-- ================= MODAL: CẤU HÌNH NHÂN SỰ & MÁY MÓC ================= -->
     <div id="modalConfigResources" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-purple-900 text-white p-4.5 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2"><span>⚙️</span> Cấu Hình & Xóa Cache Ứng Dụng</h3>
+                <h3 class="font-bold text-base flex items-center gap-2"><span>⚙️</span> Cấu Hình Nhân Sự, Chuyên Môn & Thiết Bị</h3>
                 <button onclick="closeModal('modalConfigResources')" class="text-white font-bold text-lg">✕</button>
             </div>
-            <div class="p-6 space-y-4 text-sm">
-                <p class="text-xs text-slate-600 font-medium">Bấm vào nút bên dưới để xóa toàn bộ dữ liệu tạm cũ và cập nhật bộ nhớ đệm mới nhất của phần mềm khi có phiên bản update:</p>
-                <button onclick="resetAppStorage()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold p-3 rounded-xl shadow transition">
-                    🧹 Xóa Sạch Cache & Làm Mới Ứng Dụng
-                </button>
+            <div class="p-6 space-y-6 overflow-y-auto max-h-[75vh] text-sm">
+                <!-- Phần 1: Cấu hình nhân sự -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="font-bold text-slate-700">1. Cấu hình Nhân sự & Nhóm kỹ thuật chuyên môn phụ trách:</label>
+                        <button type="button" onclick="addStaffRowConfig()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">➕ Thêm nhân sự</button>
+                    </div>
+                    <div id="staffConfigList" class="space-y-3"></div>
+                </div>
+
+                <!-- Phần 2: Cấu hình số lượng máy -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-2">2. Cấu hình số lượng máy / thiết bị hoạt động đồng thời:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5" id="machineConfigInputs"></div>
+                </div>
+
+                <!-- Phần 3: Xóa cache -->
+                <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+                    <span class="text-xs text-slate-500">Xóa sạch cache trình duyệt nếu ứng dụng gặp lỗi:</span>
+                    <button type="button" onclick="resetAppStorage()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs">🧹 Xóa bộ nhớ đệm</button>
+                </div>
             </div>
-            <div class="bg-slate-50 p-4.5 border-t flex justify-end">
-                <button onclick="closeModal('modalConfigResources')" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Đóng</button>
+            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
+                <button onclick="closeModal('modalConfigResources')" class="px-5 py-2.5 border rounded-xl text-sm font-semibold">Đóng</button>
+                <button onclick="saveResourcesConfig()" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold shadow-md">Lưu Cấu Hình</button>
             </div>
         </div>
     </div>
@@ -434,6 +451,8 @@
         }
 
         function openModal(id) { 
+            if (id === 'modalConfigResources' && !verifyAdminPermission()) return;
+            if (id === 'modalConfigResources') updateMachineStatsDisplay();
             const el = document.getElementById(id);
             if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
         }
@@ -446,6 +465,81 @@
             if (!verifyAdminPermission()) return; 
             initCalendarPicker([]); 
             openModal('modalAddPatient'); 
+        }
+
+        function updateMachineStatsDisplay() {
+            const staffContainer = document.getElementById('staffConfigList');
+            if (staffContainer) {
+                staffContainer.innerHTML = '';
+                (resourceConfig.staff || []).forEach((st) => {
+                    const row = document.createElement('div');
+                    row.className = 'bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-xs';
+                    row.innerHTML = `
+                        <div class="flex items-center justify-between gap-2">
+                            <input type="text" value="${st.name || ''}" placeholder="Tên nhân sự" class="staff-name-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-bold bg-slate-50">
+                            <button type="button" onclick="this.parentElement.parentElement.remove()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs shrink-0">✕ Xóa</button>
+                        </div>
+                        <div>
+                            <input type="text" value="${st.specs || ''}" placeholder="Chuyên môn (VD: Điện châm, Cấy chỉ...)" class="staff-spec-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-medium bg-slate-50">
+                        </div>
+                    `;
+                    staffContainer.appendChild(row);
+                });
+            }
+
+            const container = document.getElementById('machineConfigInputs');
+            if (container) {
+                container.innerHTML = '';
+                Object.keys(resourceConfig.machines || {}).forEach(mName => {
+                    const val = resourceConfig.machines[mName];
+                    const div = document.createElement('div');
+                    div.className = 'bg-slate-50 p-3 rounded-2xl border border-slate-200';
+                    div.innerHTML = `
+                        <span class="block text-xs font-semibold text-slate-500">${mName}</span>
+                        <input type="number" data-machine="${mName}" value="${val}" class="machine-input w-full font-bold border border-slate-300 rounded-xl p-1.5 mt-1 text-center bg-white">
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        function addStaffRowConfig() {
+            const staffContainer = document.getElementById('staffConfigList');
+            if (!staffContainer) return;
+            const row = document.createElement('div');
+            row.className = 'bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-xs';
+            row.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <input type="text" value="" placeholder="Tên nhân sự mới" class="staff-name-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-bold bg-slate-50">
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs shrink-0">✕ Xóa</button>
+                </div>
+                <div>
+                    <input type="text" value="" placeholder="Chuyên môn (cách nhau bởi dấu phẩy)" class="staff-spec-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-medium bg-slate-50">
+                </div>
+            `;
+            staffContainer.appendChild(row);
+        }
+
+        function saveResourcesConfig() {
+            const newStaffList = [];
+            document.querySelectorAll('#staffConfigList > div').forEach(row => {
+                const nameInp = row.querySelector('.staff-name-inp');
+                const specInp = row.querySelector('.staff-spec-inp');
+                if (nameInp && nameInp.value.trim()) {
+                    newStaffList.push({ name: nameInp.value.trim(), specs: specInp ? specInp.value.trim() : '' });
+                }
+            });
+            if (newStaffList.length > 0) resourceConfig.staff = newStaffList;
+
+            document.querySelectorAll('.machine-input').forEach(inp => {
+                const mName = inp.getAttribute('data-machine');
+                resourceConfig.machines[mName] = parseInt(inp.value) || 1;
+            });
+
+            saveDataToStorage();
+            alert('Đã lưu cấu hình nhân sự & thiết bị thành công!');
+            closeModal('modalConfigResources');
+            renderTable();
         }
 
         function openWaitingListModal() {
@@ -486,9 +580,10 @@
             });
 
             Object.keys(mapDateToPatients).forEach(targetDateStr => {
-                let morningStart = 7 * 60 + 30;
-                let afternoonStart = 13 * 60;
-                let maxEveningLimit = 19 * 60;
+                let morningStart = 7 * 60 + 2;     // 07:02
+                let morningEndLimit = 12 * 60 + 30; // 12:30
+                let afternoonStart = 13 * 60;       // 13:00
+                let maxEveningLimit = 19 * 60;      // 19:00
 
                 let machineFreeTime = {};
                 let performerFreeTime = {};
@@ -525,7 +620,7 @@
                     let earliestPatient = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
 
                     let startMin = Math.max(baseTime, machineFreeTime[bestMachineKey], earliestPerformer, earliestPatient);
-                    if (preferredShift === 'auto' && startMin > (11 * 60 + 30) && startMin < afternoonStart) startMin = afternoonStart;
+                    if (preferredShift === 'auto' && startMin > morningEndLimit && startMin < afternoonStart) startMin = afternoonStart;
 
                     let endMin = startMin + duration;
                     if (endMin > maxEveningLimit) { endMin = maxEveningLimit; startMin = Math.max(afternoonStart, endMin - duration); }
