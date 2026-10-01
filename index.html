@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.0 - Fix Shift & 5min Interval)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.1 - Fix Modals & Cache)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -137,18 +137,18 @@
         </div>
     </main>
 
-    <!-- MODAL QUẢN LÝ / THÊM / CẤU HÌNH (Giữ nguyên cấu trúc cũ) -->
+    <!-- ================= MODAL: DANH SÁCH CHỜ ================= -->
     <div id="modalWaitingList" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-blue-800 text-white p-4.5 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2"><span>📋</span> Quản Lý Danh Sách Chờ Điều Trị (<span id="modalWaitingCount">0</span> bệnh nhân)</h3>
-                <button onclick="closeModal('modalWaitingList')" class="text-white/80 font-bold text-lg">✕</button>
+                <h3 class="font-bold text-base flex items-center gap-2"><span>📋</span> Quản Lý Danh Sách Chờ Điều Trị</h3>
+                <button onclick="closeModal('modalWaitingList')" class="text-white font-bold text-lg">✕</button>
             </div>
             <div class="p-6 space-y-4 overflow-y-auto max-h-[70vh] text-sm">
                 <div class="overflow-x-auto border border-slate-200 rounded-2xl">
                     <table class="min-w-full divide-y divide-slate-200 text-xs text-left">
                         <thead class="bg-slate-100 text-slate-600 font-bold uppercase">
-                            <tr><th class="p-3">STT</th><th class="p-3">Họ Tên</th><th class="p-3">Mã HSBA</th><th class="p-3">Đối Tượng</th><th class="p-3">Kỹ Thuật</th><th class="p-3 text-center">Ngày Điều Trị</th><th class="p-3">BS Chỉ Định</th><th class="p-3 text-center">Thao Tác</th></tr>
+                            <tr><th class="p-3">STT</th><th class="p-3">Họ Tên</th><th class="p-3">Mã HSBA</th><th class="p-3">Đối Tượng</th><th class="p-3">Kỹ Thuật</th><th class="p-3 text-center">Ngày Điều Trị</th><th class="p-3">Thao Tác</th></tr>
                         </thead>
                         <tbody id="waitingListTableBody" class="divide-y divide-slate-100"></tbody>
                     </table>
@@ -160,7 +160,7 @@
         </div>
     </div>
 
-    <!-- MODAL THÊM BỆNH NHÂN -->
+    <!-- ================= MODAL: THÊM BỆNH NHÂN ================= -->
     <div id="modalAddPatient" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-emerald-800 text-white p-4.5 flex justify-between items-center">
@@ -168,7 +168,6 @@
                 <button onclick="closeModal('modalAddPatient')" class="text-white font-bold text-lg">✕</button>
             </div>
             <div class="p-6 space-y-4 overflow-y-auto max-h-[75vh] text-sm">
-                <input type="hidden" id="editIndex" value="-1">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="block text-xs font-bold text-slate-600 mb-1.5">Họ tên bệnh nhân *</label><input type="text" id="pName" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm"></div>
                     <div><label class="block text-xs font-bold text-slate-600 mb-1.5">Mã HSBA *</label><input type="text" id="pHsba" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm"></div>
@@ -187,7 +186,6 @@
                         </select>
                     </div>
                 </div>
-                <!-- Lịch tương tác chọn ngày -->
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Chọn ngày điều trị cụ thể *</label>
                     <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
@@ -208,7 +206,44 @@
             </div>
             <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
                 <button onclick="closeModal('modalAddPatient')" class="px-5 py-2.5 border rounded-xl text-sm font-semibold">Hủy</button>
-                <button onclick="savePatientForm()" id="btnSavePatient" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold">Lưu Vào Danh Sách Chờ</button>
+                <button onclick="savePatientForm()" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold">Lưu Vào Danh Sách Chờ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CẤU HÌNH ================= -->
+    <div id="modalConfigResources" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-purple-900 text-white p-4.5 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2"><span>⚙️</span> Cấu Hình & Xóa Cache Ứng Dụng</h3>
+                <button onclick="closeModal('modalConfigResources')" class="text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="p-6 space-y-4 text-sm">
+                <p class="text-xs text-slate-600 font-medium">Bấm vào nút bên dưới để xóa toàn bộ dữ liệu tạm cũ và cập nhật bộ nhớ đệm mới nhất của phần mềm khi có phiên bản update:</p>
+                <button onclick="resetAppStorage()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold p-3 rounded-xl shadow transition">
+                    🧹 Xóa Sạch Cache & Làm Mới Ứng Dụng
+                </button>
+            </div>
+            <div class="bg-slate-50 p-4.5 border-t flex justify-end">
+                <button onclick="closeModal('modalConfigResources')" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: NHẬP EXCEL ================= -->
+    <div id="modalExcel" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-teal-800 text-white p-4.5 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2"><span>📥</span> Nhập Dữ Liệu Từ File Excel</h3>
+                <button onclick="closeModal('modalExcel')" class="text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="p-6 space-y-4 text-sm">
+                <input type="file" id="excelFile" accept=".xlsx, .xls" class="w-full border-2 border-dashed border-slate-300 rounded-2xl p-4 text-sm bg-slate-50 cursor-pointer">
+                <span id="excelStatus" class="text-xs font-bold text-emerald-600 block"></span>
+            </div>
+            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
+                <button onclick="closeModal('modalExcel')" class="px-5 py-2.5 border rounded-xl text-sm font-semibold">Đóng</button>
+                <button onclick="handleExcelUpload()" class="px-5 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold">Xác Nhận Nạp</button>
             </div>
         </div>
     </div>
@@ -339,6 +374,13 @@
             } catch(e) { }
         }
 
+        function resetAppStorage() {
+            if (confirm("Xóa toàn bộ cache và làm mới ứng dụng?")) {
+                localStorage.clear();
+                location.reload(true);
+            }
+        }
+
         async function syncOnlineTime() {
             try {
                 const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Ho_Chi_Minh');
@@ -391,14 +433,26 @@
             });
         }
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
-        function openAddModal() { if (!verifyAdminPermission()) return; initCalendarPicker([]); openModal('modalAddPatient'); }
+        function openModal(id) { 
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+        }
+        function closeModal(id) { 
+            const el = document.getElementById(id);
+            if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+        }
+
+        function openAddModal() { 
+            if (!verifyAdminPermission()) return; 
+            initCalendarPicker([]); 
+            openModal('modalAddPatient'); 
+        }
+
         function openWaitingListModal() {
             const tbody = document.getElementById('waitingListTableBody');
-            tbody.innerHTML = patientsWaiting.length === 0 ? `<tr><td colspan="8" class="p-6 text-center text-slate-400 italic">Danh sách chờ trống.</td></tr>` : '';
+            tbody.innerHTML = patientsWaiting.length === 0 ? `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">Danh sách chờ trống.</td></tr>` : '';
             patientsWaiting.forEach((p, idx) => {
-                tbody.innerHTML += `<tr><td class="p-3 font-bold">#${idx+1}</td><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-blue-600">${p.hsba}</td><td class="p-3">${p.type}</td><td class="p-3">${p.procedures.join(', ')}</td><td class="p-3 text-center">${p.dates.join(', ')}</td><td class="p-3">${p.doctor}</td><td class="p-3 text-center"><button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="bg-rose-600 text-white px-2 py-1 rounded text-xs">Xóa</button></td></tr>`;
+                tbody.innerHTML += `<tr><td class="p-3 font-bold">#${idx+1}</td><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-blue-600">${p.hsba}</td><td class="p-3">${p.type}</td><td class="p-3">${p.procedures.join(', ')}</td><td class="p-3 text-center">${p.dates.join(', ')}</td><td class="p-3 text-center"><button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="bg-rose-600 text-white px-2 py-1 rounded text-xs">Xóa</button></td></tr>`;
             });
             openModal('modalWaitingList');
         }
@@ -417,7 +471,6 @@
             alert('Đã lưu bệnh nhân vào danh sách chờ!');
         }
 
-        // ================= HÀM PHÂN BỔ TỰ ĐỘNG CHUẨN CA SÁNG / CHIỀU & CÁCH 5 PHÚT =================
         function autoAllocateDaily() {
             if (!verifyAdminPermission()) return;
             if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
@@ -433,13 +486,9 @@
             });
 
             Object.keys(mapDateToPatients).forEach(targetDateStr => {
-                let targetDateObj = new Date(targetDateStr);
-                let isSaturday = (targetDateObj.getDay() === 6);
-
-                // Khởi tạo thời gian bắt đầu
-                let morningStart = 7 * 60 + 30;   // 07:30
-                let afternoonStart = 13 * 60;     // 13:00
-                let maxEveningLimit = 19 * 60;    // Cứng 19:00 off
+                let morningStart = 7 * 60 + 30;
+                let afternoonStart = 13 * 60;
+                let maxEveningLimit = 19 * 60;
 
                 let machineFreeTime = {};
                 let performerFreeTime = {};
@@ -451,9 +500,7 @@
                 });
 
                 let dailyTreatments = [];
-                let items = mapDateToPatients[targetDateStr];
-
-                items.forEach(item => {
+                mapDateToPatients[targetDateStr].forEach(item => {
                     let p = item.patient;
                     let procName = item.procedure;
                     let details = getPerformerAndAssistant(procName);
@@ -461,20 +508,9 @@
                     let cat = details.category;
                     let performer = details.performer;
 
-                    // Xác định ca làm việc theo lựa chọn của người dùng hoặc tự động
                     let preferredShift = p.shiftChoice || 'auto';
-                    let baseTime = morningStart;
+                    let baseTime = preferredShift === 'chieu' ? afternoonStart : morningStart;
 
-                    if (preferredShift === 'chieu') {
-                        baseTime = afternoonStart;
-                    } else if (preferredShift === 'sang') {
-                        baseTime = morningStart;
-                    } else {
-                        // Chế độ Auto: Nếu quá 11:30 (11 * 60 + 30 = 690) thì auto sang chiều
-                        baseTime = morningStart; 
-                    }
-
-                    // Tìm máy trống sớm nhất
                     let bestMachineKey = `${cat}_1`;
                     let earliestMachine = Infinity;
                     Object.keys(machineFreeTime).forEach(mKey => {
@@ -485,41 +521,21 @@
                     });
                     if (machineFreeTime[bestMachineKey] === undefined) machineFreeTime[bestMachineKey] = baseTime;
 
-                    let earliestPerformer = baseTime;
-                    if (performer && performer !== '-') {
-                        if (performerFreeTime[performer] === undefined) performerFreeTime[performer] = baseTime;
-                        earliestPerformer = performerFreeTime[performer];
-                    }
-
-                    let patientKey = p.hsba;
-                    let earliestPatient = patientFreeTime[patientKey] !== undefined ? patientFreeTime[patientKey] : baseTime;
+                    let earliestPerformer = performer && performer !== '-' ? (performerFreeTime[performer] || baseTime) : baseTime;
+                    let earliestPatient = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
 
                     let startMin = Math.max(baseTime, machineFreeTime[bestMachineKey], earliestPerformer, earliestPatient);
-
-                    // Quy tắc tự động nhảy sang chiều nếu vượt quá 11:30 trong ca sáng tự động
-                    if (preferredShift === 'auto' && startMin > (11 * 60 + 30) && startMin < afternoonStart) {
-                        startMin = afternoonStart;
-                    }
+                    if (preferredShift === 'auto' && startMin > (11 * 60 + 30) && startMin < afternoonStart) startMin = afternoonStart;
 
                     let endMin = startMin + duration;
+                    if (endMin > maxEveningLimit) { endMin = maxEveningLimit; startMin = Math.max(afternoonStart, endMin - duration); }
 
-                    // Chặn tuyệt đối không được quá 19:00
-                    if (endMin > maxEveningLimit) {
-                        endMin = maxEveningLimit;
-                        startMin = Math.max(afternoonStart, endMin - duration);
-                    }
-
-                    // Cập nhật thời gian giải phóng tài nguyên
                     machineFreeTime[bestMachineKey] = endMin + 2; 
-
                     if (performer && performer !== '-') {
-                        // 👉 NẾU LÀ THỦ THUẬT CHÂM CỨU HOẶC PHCN: Cho phép người thực hiện làm ca tiếp theo cách nhau chỉ 5 phút
-                        let isAcupunctureOrManual = cat.toLowerCase().includes('châm') || cat.toLowerCase().includes('vltl') || cat.toLowerCase().includes('xung kích') || cat.toLowerCase().includes('thủy châm');
-                        let staffInterval = isAcupunctureOrManual ? 5 : duration; 
-                        performerFreeTime[performer] = startMin + staffInterval; 
+                        let isQuickStaff = cat.toLowerCase().includes('châm') || cat.toLowerCase().includes('vltl') || cat.toLowerCase().includes('xung kích');
+                        performerFreeTime[performer] = startMin + (isQuickStaff ? 5 : duration); 
                     }
-
-                    patientFreeTime[patientKey] = endMin + 1; // Bệnh nhân nghỉ cách nhau 1 phút
+                    patientFreeTime[p.hsba] = endMin + 1;
 
                     let sH = Math.floor(startMin / 60), sM = startMin % 60;
                     let eH = Math.floor(endMin / 60), eM = endMin % 60;
@@ -534,15 +550,13 @@
                     });
                 });
 
-                if (dailyTreatments.length > 0) {
-                    allTreatments[targetDateStr] = dailyTreatments;
-                }
+                if (dailyTreatments.length > 0) allTreatments[targetDateStr] = dailyTreatments;
             });
 
             patientsWaiting = [];
             saveDataToStorage();
             renderTable();
-            alert('⚡ Phân bổ lịch thành công! Đã áp dụng quy tắc ca sáng/chiều và thời gian ngắt nghỉ chuẩn xác.');
+            alert('⚡ Phân bổ lịch thành công!');
         }
 
         function getPerformerAndAssistant(procName) {
@@ -589,6 +603,48 @@
                 const result = await response.json();
                 if (result && result.treatments) { allTreatments[dateStr] = result.treatments; renderTable(); }
             } catch(e) {}
+        }
+
+        function handleExcelUpload() {
+            const fileInput = document.getElementById('excelFile');
+            const statusEl = document.getElementById('excelStatus');
+            if (!fileInput.files || fileInput.files.length === 0) { alert('Vui lòng chọn file Excel!'); return; }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+
+                    let imported = 0;
+                    jsonRows.forEach(row => {
+                        let name = row['Họ tên'] || row['Ho ten'] || row['Name'];
+                        let hsba = row['Mã HSBA'] || row['Ma HSBA'] || row['HSBA'];
+                        let type = row['Đối tượng'] || row['Doi tuong'] || 'Ngoại trú';
+                        let procStr = row['Kỹ thuật điều trị'] || row['Ky thuat dieu tri'] || 'Kéo cột sống (15p)';
+                        let dateStr = row['Ngày điều trị'] || row['Ngay dieu tri'] || document.getElementById('currentDate').value;
+
+                        if (name && hsba) {
+                            patientsWaiting.push({
+                                name: String(name).trim(), hsba: String(hsba).trim(),
+                                type: String(type).trim().includes('nội') ? 'Nội trú' : 'Ngoại trú',
+                                shiftChoice: 'auto',
+                                dates: String(dateStr).split(',').map(s => s.trim()),
+                                procedures: String(procStr).split(',').map(s => s.trim()),
+                                doctor: 'BS Đoan Trang'
+                            });
+                            imported++;
+                        }
+                    });
+
+                    saveDataToStorage();
+                    statusEl.textContent = `✅ Đã nhập thành công ${imported} bệnh nhân!`;
+                    setTimeout(() => closeModal('modalExcel'), 1500);
+                } catch(err) { alert('Lỗi đọc file: ' + err.message); }
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
         }
 
         function renderTable() {
