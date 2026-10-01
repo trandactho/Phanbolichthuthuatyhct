@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v2.9 - Multi Custom Dates)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+    <style>
+    /* Khắc phục lỗi màu trên iOS Safari */
+    input[type="date"] {
+        color-scheme: dark;
+    }
+    .backdrop-blur, .backdrop-blur-sm {
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+    </style>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+
+    <!-- Top Header -->
+    <header class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-3.5 shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="bg-blue-800 p-2 rounded-xl shadow-inner text-xl">🏥</div>
+                <div>
+                    <h1 class="text-xs sm:text-sm font-extrabold uppercase tracking-wide">PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</h1>
+                    <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <div class="flex items-center gap-2 bg-blue-800/85 backdrop-blur px-3 py-1.5 rounded-xl border border-blue-700/50 text-sm shadow-sm">
+                    <span class="font-medium text-blue-100 text-xs">📅 Ngày:</span>
+                    <input type="date" id="currentDate" onchange="renderTable()" class="bg-blue-700 text-white rounded-lg px-2 py-1 outline-none font-bold text-xs shadow-inner cursor-pointer" style="color-scheme: dark;">
+                </div>
+                <button id="btnUnlockAdmin" onclick="toggleAdminUnlock()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition shadow-sm whitespace-nowrap">
+                    <span>🔒</span> Khóa
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Dashboard Metrics Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center hover:shadow-md transition">
+                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">TỔNG LƯỢT</p><h3 id="statTotal" class="text-2xl font-black text-slate-700 mt-1">0</h3></div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold">📊</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center hover:shadow-md transition">
+                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">NỘI TRÚ</p><h3 id="statInpatient" class="text-2xl font-black text-blue-600 mt-1">0</h3></div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold">🛏️</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center hover:shadow-md transition">
+                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">NGOẠI TRÚ</p><h3 id="statOutpatient" class="text-2xl font-black text-indigo-600 mt-1">0</h3></div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold">🚶</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center hover:shadow-md transition">
+                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ĐANG THỰC HIỆN</p><h3 id="statDoing" class="text-2xl font-black text-amber-600 mt-1">0</h3></div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 font-bold">⚡</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">MÁY VẬN HÀNH</p>
+                    <h3 id="statMachines" class="text-2xl font-black text-purple-600 mt-1">0 / 27</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Toolbar Buttons -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-center mb-3">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Theo Lịch Ca Sáng / Chiều Đến 19:00)</p>
+                <span id="onlineTimeStatus" class="text-[11px] font-medium text-emerald-600 flex items-center gap-1">🌐 Đang đồng bộ giờ online...</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">➕</span> Thêm Bệnh Nhân
+                </button>
+                <button onclick="openWaitingListModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">📋</span> 
+                    <span class="whitespace-nowrap">DS Chờ (<span id="waitingCountBadge">0</span>)</span>
+                </button>
+                <button onclick="openModal('modalExcel')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">📥</span> Nhập Excel
+                </button>
+                <button onclick="openModal('modalConfigResources')" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">⚙</span> Cấu Hình
+                </button>
+                <button onclick="autoAllocateDaily()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">⚡</span> Tự Động Phân Bổ
+                </button>
+                <button onclick="manualSyncToGoogleSheet()" class="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">☁️</span> Lưu Google Sheet
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters & Table Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <h2 class="font-bold text-slate-700 text-base">📋 Lịch Điều Trị Kỹ Thuật</h2>
+                    <span id="tableRowCount" class="text-xs font-semibold text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">0 dòng</span>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <select id="filterType" onchange="renderTable()" class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white font-medium outline-none shadow-sm">
+                        <option value="all">Tất cả đối tượng</option>
+                        <option value="Nội trú">Chỉ Nội trú</option>
+                        <option value="Ngoại trú">Chỉ Ngoại trú</option>
+                    </select>
+                    <input type="text" id="tableSearchFilter" onkeyup="renderTable()" placeholder="Lọc nhanh trên bảng..." class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white outline-none shadow-sm w-full sm:w-64">
+                </div>
+            </div>
+            <div class="p-2 bg-slate-50 border-b border-slate-200 text-slate-600 text-xs text-center font-medium">
+                ⚡ Bạn có thể bấm chọn trực tiếp vào ô Người Thực Hiện hoặc Người Phụ trên bảng để đổi nhân sự đột xuất.
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-xs sm:text-sm text-left">
+                    <thead class="bg-slate-100/70 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                        <tr>
+                            <th class="p-3.5">Họ Tên</th>
+                            <th class="p-3.5">Mã HSBA</th>
+                            <th class="p-3.5">Đối Tượng</th>
+                            <th class="p-3.5">Dịch Vụ Kỹ Thuật</th>
+                            <th class="p-3.5">Bắt Đầu</th>
+                            <th class="p-3.5">Kết Thúc</th>
+                            <th class="p-3.5">Người Thực Hiện</th>
+                            <th class="p-3.5">Người Phụ</th>
+                            <th class="p-3.5">Mã Máy</th>
+                            <th class="p-3.5">BS Chỉ Định</th>
+                            <th class="p-3.5 text-center">Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleTableBody" class="divide-y divide-slate-100">
+                        <tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Chưa có lịch phân bổ. Hãy bấm "Tự Động Phân Bổ".</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= MODAL: QUẢN LÝ DANH SÁCH CHỜ ================= -->
+    <div id="modalWaitingList" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-blue-800 text-white p-4.5 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2"><span>📋</span> Quản Lý Danh Sách Chờ Điều Trị (<span id="modalWaitingCount">0</span> bệnh nhân)</h3>
+                <button onclick="closeModal('modalWaitingList')" class="text-white/80 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="p-6 space-y-4 overflow-y-auto max-h-[70vh] text-sm">
+                <div class="flex justify-between items-center">
+                    <p class="text-xs text-slate-500 font-medium">Danh sách bệnh nhân đang chờ sắp xếp lịch điều trị kỹ thuật.</p>
+                    <button onclick="closeModal('modalWaitingList'); openAddModal();" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm">➕ Thêm Bệnh Nhân Mới</button>
+                </div>
+                <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+                    <table class="min-w-full divide-y divide-slate-200 text-xs text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-bold uppercase">
+                            <tr>
+                                <th class="p-3">STT</th>
+                                <th class="p-3">Họ Tên</th>
+                                <th class="p-3">Mã HSBA</th>
+                                <th class="p-3">Đối Tượng</th>
+                                <th class="p-3">Kỹ Thuật</th>
+                                <th class="p-3 text-center">Ngày Điều Trị</th>
+                                <th class="p-3">BS Chỉ Định</th>
+                                <th class="p-3 text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="waitingListTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-4 border-t flex justify-end">
+                <button onclick="closeModal('modalWaitingList')" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold shadow-md">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: THÊM / SỬA BỆNH NHÂN ================= -->
+    <div id="modalAddPatient" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div id="modalPatientHeader" class="bg-emerald-800 text-white p-4.5 flex justify-between items-center">
+                <h3 id="modalPatientTitle" class="font-bold text-base flex items-center gap-2"><span>➕</span> Thêm Bệnh Nhân Vào Danh Sách Chờ</h3>
+                <button onclick="closeModal('modalAddPatient')" class="text-white/80 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="p-6 space-y-4 overflow-y-auto max-h-[75vh] text-sm">
+                <input type="hidden" id="editIndex" value="-1">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Chọn từ cơ sở dữ liệu mẫu (hoặc nhập thủ công bên dưới)</label>
+                    <select id="selectExistingPatient" onchange="autofillPatientData()" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm bg-slate-50 font-medium">
+                        <option value="">-- Chọn bệnh nhân mẫu --</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Họ tên bệnh nhân *</label>
+                        <input type="text" id="pName" placeholder="Ví dụ: Nguyễn Văn A" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Mã HSBA *</label>
+                        <input type="text" id="pHsba" placeholder="VD: HSBA0001" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Đối tượng *</label>
+                        <select id="pType" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-semibold">
+                            <option value="Ngoại trú">Ngoại trú</option>
+                            <option value="Nội trú">Nội trú</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Bác sĩ chỉ định</label>
+                        <select id="pDoctor" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm">
+                            <option>BS Trần Thị Đoan Trang</option>
+                            <option>BS Trần Thị Huyền Trang</option>
+                            <option>BS Nguyễn Thành Nam</option>
+                            <option>BS Cảm</option>
+                            <option>BS Đại</option>
+                            <option>BS Sinh</option>
+                        </select>
+                    </div>                    
+                </div>
+
+                <!-- WIDGET LỊCH TƯƠNG TÁC THAY THẾ Ô INPUT CŨ -->
+                <div class="col-span-1 sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Chọn ngày điều trị cụ thể (Bấm chọn trực tiếp trên lịch) *</label>
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3 shadow-inner">
+                        <div class="flex justify-between items-center">
+                            <button type="button" onclick="changeCalendarMonth(-1)" class="p-1.5 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 font-bold text-xs shadow-sm">◀ Tháng trước</button>
+                            <span id="calendarMonthTitle" class="font-bold text-sm text-slate-700">Tháng 9 / 2026</span>
+                            <button type="button" onclick="changeCalendarMonth(1)" class="p-1.5 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 font-bold text-xs shadow-sm">Tháng sau ▶</button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-[11px] text-slate-400">
+                            <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+                        </div>
+                        <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1"></div>
+                        <div class="pt-2 border-t border-slate-200">
+                            <span class="text-[11px] font-bold text-slate-500 block mb-1">Các ngày đã chọn (<span id="selectedDatesCount">0</span> buổi):</span>
+                            <div id="selectedDatesChips" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-white rounded-xl border border-slate-200"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2">Chọn các kỹ thuật điều trị cho bệnh nhân này (Có thể chọn nhiều):</label>
+                    <div id="procedureCheckboxContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                        <!-- Render dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
+                <button onclick="closeModal('modalAddPatient')" class="px-5 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Hủy</button>
+                <button onclick="savePatientForm()" id="btnSavePatient" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md">Lưu Vào Danh Sách Chờ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CẤU HÌNH NGUỒN LỰC & CHUYÊN MÔN ================= -->
+    <div id="modalConfigResources" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-purple-900 text-white p-4.5 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2"><span>⚙️</span> Cấu Hình Nhân Sự, Chuyên Môn & Thiết Bị</h3>
+                <button onclick="closeModal('modalConfigResources')" class="text-white/80 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="p-6 space-y-6 overflow-y-auto max-h-[75vh] text-sm">
+                <!-- Phần 1: Cấu hình nhân sự & chuyên môn -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="font-bold text-slate-700">1. Cấu hình Nhân sự & Nhóm kỹ thuật chuyên môn phụ trách:</label>
+                        <button type="button" onclick="addStaffRowConfig()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap">➕ Thêm nhân sự</button>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-3">Nhập tên nhân sự và các nhóm kỹ thuật được phân công (cách nhau bởi dấu phẩy).</p>
+                    <div id="staffConfigList" class="space-y-3">
+                        <!-- Render dynamically -->
+                    </div>
+                </div>
+
+                <!-- Phần 2: Cấu hình số lượng máy -->
+                <div>
+                    <label class="block font-bold text-slate-700 mb-2">2. Cấu hình số lượng máy / thiết bị hoạt động đồng thời:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5" id="machineConfigInputs">
+                        <!-- Render dynamically -->
+                    </div>
+                </div>
+
+                <!-- Phần 3: Reset dữ liệu nếu lỗi cache -->
+                <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+                    <span class="text-xs text-slate-500">Xóa sạch cache trình duyệt nếu ứng dụng gặp lỗi trắng trang:</span>
+                    <button type="button" onclick="resetAppStorage()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs">🧹 Xóa bộ nhớ đệm</button>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
+                <button onclick="closeModal('modalConfigResources')" class="px-5 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Đóng</button>
+                <button onclick="saveResourcesConfig()" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 shadow-md">Lưu Cấu Hình</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: NHẬP EXCEL ================= -->
+    <div id="modalExcel" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-teal-800 text-white p-4.5 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2"><span>📥</span> Nhập Dữ Liệu Từ File Excel (.xlsx)</h3>
+                <button onclick="closeModal('modalExcel')" class="text-white/80 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="p-6 space-y-4 text-sm">
+                <input type="file" id="excelFile" accept=".xlsx, .xls" class="w-full border-2 border-dashed border-slate-300 rounded-2xl p-4 text-sm bg-slate-50 cursor-pointer">
+                <p class="text-xs text-slate-500">Lưu ý: File Excel hỗ trợ đọc cột "Ngày điều trị" hoặc "Số buổi".</p>
+                <div class="flex justify-between items-center">
+                    <button onclick="downloadSampleTemplate()" class="text-teal-700 font-semibold text-xs hover:underline">📄 Tải file mẫu Excel chuẩn</button>
+                    <span id="excelStatus" class="text-xs font-bold text-emerald-600"></span>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
+                <button onclick="closeModal('modalExcel')" class="px-5 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold text-slate-600">Đóng</button>
+                <button onclick="handleExcelUpload()" class="px-5 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold">Xác Nhận Nạp</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        let availableProcedures = [
+            { name: 'Kéo cột sống (15p)', category: 'Kéo cột sống', duration: 15 },
+            { name: 'Chườm ngải (15p)', category: 'Chườm ngải', duration: 15 },
+            { name: 'Từ trường (15p)', category: 'Từ trường', duration: 15 },
+            { name: 'Áp lực hơi (15p)', category: 'Áp lực hơi', duration: 15 },
+            { name: 'Điện xung (15p)', category: 'Điện xung', duration: 15 },
+            { name: 'Sóng ngắn (15p)', category: 'Sóng ngắn', duration: 15 },
+            { name: 'Hồng ngoại (15p)', category: 'Hồng ngoại', duration: 15 },
+            { name: 'Tập VLTL (15p)', category: 'Tập VLTL', duration: 15 },
+            { name: 'Xung kích (5p)', category: 'Xung kích', duration: 5 },
+            { name: 'Siêu âm (15p)', category: 'Siêu âm', duration: 15 },
+            { name: 'XBBH (20p)', category: 'XBBH', duration: 20 },
+            { name: 'Cứu ngải (15p)', category: 'Cứu ngải', duration: 15 },
+            { name: 'Điện châm (20p)', category: 'Điện châm', duration: 20 },
+            { name: 'Cấy chỉ (20p)', category: 'Cấy chỉ', duration: 20 },
+            { name: 'Thủy châm (5p)', category: 'Thủy châm', duration: 5 }
+        ];
+
+        let defaultResourceConfig = {
+            staff: [
+                { name: 'BS Trần Thị Đoan Trang', specs: 'Tập VLTL, Xung kích, Siêu âm, Cấy chỉ, Thủy châm' },
+                { name: 'BS Trần Thị Huyền Trang', specs: 'Tập VLTL, Xung kích, Siêu âm, Cấy chỉ, Thủy châm' },
+                { name: 'BS Nguyễn Thành Nam', specs: 'XBBH, Điện châm' },
+                { name: 'KTV Võ Thị Xuân Trúc', specs: 'Kéo cột sống, Chườm ngải, Từ trường, Áp lực hơi, Điện xung, Sóng ngắn, Hồng ngoại' },
+                { name: 'YS Võ Lê Quế Trân', specs: 'Cứu ngải, Điện châm' },
+                { name: 'YS Nguyễn Tường Quang', specs: 'XBBH, Cứu ngải, Điện châm' },
+                { name: 'YS Nguyễn Thị Bích Thảo', specs: 'Điện châm' }
+            ],
+            machines: { 
+                'Kéo cột sống': 3, 'Chườm ngải': 5, 'Từ trường': 2, 'Áp lực hơi': 2, 
+                'Điện xung': 4, 'Sóng ngắn': 2, 'Hồng ngoại': 9, 'Tập VLTL': 2, 
+                'Xung kích': 1, 'Siêu âm': 1, 'XBBH': 2, 'Cứu ngải': 3, 
+                'Điện châm': 9, 'Cấy chỉ': 2, 'Thủy châm': 2
+            }
+        };
+
+        let resourceConfig = JSON.parse(JSON.stringify(defaultResourceConfig));
+
+        let masterPatientDatabase = [
+            { name: 'Nguyễn Văn An', hsba: 'HSBA0001', type: 'Nội trú', dates: ['2026-10-01', '2026-10-03', '2026-10-05'], procedures: ['Kéo cột sống (15p)', 'Điện châm (20p)'], doctor: 'BS Cảm' },
+            { name: 'Trần Thị Bình', hsba: 'HSBA0002', type: 'Ngoại trú', dates: ['2026-10-02', '2026-10-04'], procedures: ['Sóng ngắn (15p)', 'Thủy châm (5p)'], doctor: 'BS Đại' },
+            { name: 'Lê Văn Cường', hsba: 'HSBA0003', type: 'Nội trú', dates: ['2026-10-01', '2026-10-04', '2026-10-06'], procedures: ['Điện châm (20p)', 'Cấy chỉ (20p)'], doctor: 'BS Sinh' }
+        ];
+
+        let patientsWaiting = [];
+        let allTreatments = {}; 
+        let treatments = [];     
+        let isAdminUnlocked = false; 
+        let onlineNow = new Date();
+
+        let currentCalYear = 2026;
+        let currentCalMonth = 8;
+        let selectedPatientDates = [];
+
+        function initCalendarPicker(datesArray = []) {
+            selectedPatientDates = [...(datesArray || [])];
+            const now = new Date();
+            currentCalYear = now.getFullYear();
+            currentCalMonth = now.getMonth();
+            if (selectedPatientDates.length > 0) {
+                const firstDate = new Date(selectedPatientDates[0]);
+                if (!isNaN(firstDate)) {
+                    currentCalYear = firstDate.getFullYear();
+                    currentCalMonth = firstDate.getMonth();
+                }
+            }
+            renderCalendarGrid();
+        }
+
+        function changeCalendarMonth(delta) {
+            currentCalMonth += delta;
+            if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; }
+            else if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; }
+            renderCalendarGrid();
+        }
+
+        function renderCalendarGrid() {
+            const titleEl = document.getElementById('calendarMonthTitle');
+            const gridEl = document.getElementById('calendarDaysGrid');
+            const chipsEl = document.getElementById('selectedDatesChips');
+            const countEl = document.getElementById('selectedDatesCount');
+            if (!titleEl || !gridEl) return;
+            titleEl.textContent = `Tháng ${currentCalMonth + 1} / ${currentCalYear}`;
+            
+            const firstDayObj = new Date(currentCalYear, currentCalMonth, 1);
+            let startDayOfWeek = firstDayObj.getDay();
+            startDayOfWeek = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1;
+            const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+            
+            gridEl.innerHTML = '';
+            for (let i = 0; i < startDayOfWeek; i++) {
+                gridEl.appendChild(document.createElement('div'));
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const mm = String(currentCalMonth + 1).padStart(2, '0');
+                const dd = String(day).padStart(2, '0');
+                const dateStr = `${currentCalYear}-${mm}-${dd}`;
+                const isSelected = selectedPatientDates.includes(dateStr);
+                
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `p-2 rounded-xl text-xs font-bold transition flex items-center justify-center ${isSelected ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'}`;
+                btn.textContent = day;
+                btn.onclick = () => toggleDateSelection(dateStr);
+                gridEl.appendChild(btn);
+            }
+            
+            chipsEl.innerHTML = '';
+            countEl.textContent = selectedPatientDates.length;
+            if (selectedPatientDates.length === 0) {
+                chipsEl.innerHTML = `<span class="text-xs text-slate-400 italic p-1">Chưa chọn ngày nào. Hãy bấm vào các ô ngày trên lịch.</span>`;
+                return;
+            }
+            selectedPatientDates.sort().forEach(dateStr => {
+                const chip = document.createElement('span');
+                chip.className = 'inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold shadow-xs';
+                chip.innerHTML = `<span>📅 ${dateStr}</span> <button type="button" onclick="removeSelectedDate('${dateStr}')" class="hover:text-rose-600 font-bold ml-1 cursor-pointer">✕</button>`;
+                chipsEl.appendChild(chip);
+            });
+        }
+
+        function toggleDateSelection(dateStr) {
+            const idx = selectedPatientDates.indexOf(dateStr);
+            if (idx > -1) selectedPatientDates.splice(idx, 1);
+            else selectedPatientDates.push(dateStr);
+            renderCalendarGrid();
+        }
+
+        function removeSelectedDate(dateStr) {
+            selectedPatientDates = selectedPatientDates.filter(d => d !== dateStr);
+            renderCalendarGrid();
+        }
+
+        function saveDataToStorage() {
+            localStorage.setItem('yhct_resourceConfig', JSON.stringify(resourceConfig));
+            localStorage.setItem('yhct_patientsWaiting', JSON.stringify(patientsWaiting));
+            localStorage.setItem('yhct_treatments', JSON.stringify(allTreatments));
+        }
+
+        function loadDataFromStorage() {
+            try {
+                const savedConfig = localStorage.getItem('yhct_resourceConfig');
+                if (savedConfig) {
+                    let parsed = JSON.parse(savedConfig);
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.staff && Array.isArray(parsed.staff)) {
+                            resourceConfig.staff = parsed.staff;
+                        } else if (parsed.doctors && Array.isArray(parsed.doctors)) {
+                            resourceConfig.staff = parsed.doctors.map(d => ({ name: d, specs: 'Tổng hợp' }));
+                        }
+                        if (parsed.machines && typeof parsed.machines === 'object') {
+                            resourceConfig.machines = { ...defaultResourceConfig.machines, ...parsed.machines };
+                        }
+                    }
+                }
+            } catch(e) {
+                resourceConfig = JSON.parse(JSON.stringify(defaultResourceConfig));
+            }
+
+            try {
+                const savedWaiting = localStorage.getItem('yhct_patientsWaiting');
+                if (savedWaiting) patientsWaiting = JSON.parse(savedWaiting);
+                else patientsWaiting = masterPatientDatabase.slice(0, 3);
+            } catch(e) { patientsWaiting = masterPatientDatabase.slice(0, 3); }
+
+            try {
+                const savedAllTreatments = localStorage.getItem('yhct_treatments');
+                if (savedAllTreatments) {
+                    const parsed = JSON.parse(savedAllTreatments);
+                    allTreatments = Array.isArray(parsed) ? { [new Date().toISOString().split('T')[0]]: parsed } : (parsed || {});
+                } else { allTreatments = {}; }
+            } catch(e) { allTreatments = {}; }
+        }
+
+        function resetAppStorage() {
+            if (confirm("Xóa toàn bộ dữ liệu lưu trữ tạm thời và khôi phục mặc định?")) {
+                localStorage.removeItem('yhct_resourceConfig');
+                localStorage.removeItem('yhct_patientsWaiting');
+                localStorage.removeItem('yhct_treatments');
+                location.reload();
+            }
+        }
+        
+        async function syncOnlineTime() {
+            const statusEl = document.getElementById('onlineTimeStatus');
+            try {
+                const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Ho_Chi_Minh');
+                const data = await response.json();
+                if (data && data.datetime) {
+                    onlineNow = new Date(data.datetime);
+                    document.getElementById('currentDate').value = data.datetime.substring(0, 10);
+                    if (statusEl) statusEl.innerHTML = '🌐 Đã đồng bộ giờ online chuẩn';
+                }
+            } catch (e) {
+                onlineNow = new Date();
+                const yyyy = onlineNow.getFullYear();
+                const mm = String(onlineNow.getMonth() + 1).padStart(2, '0');
+                const dd = String(onlineNow.getDate()).padStart(2, '0');
+                document.getElementById('currentDate').value = `${yyyy}-${mm}-${dd}`;
+                if (statusEl) statusEl.innerHTML = '⚠ Dùng giờ thiết bị (offline)';
+            }
+            renderTable();
+        }
+
+        function toggleAdminUnlock() {
+            if (isAdminUnlocked) {
+                if (confirm("Khóa lại quyền quản trị?")) {
+                    isAdminUnlocked = false;
+                    updateUnlockButtonUI();
+                }
+            } else {
+                const password = prompt("🔐 Nhập mật khẩu quản trị (BS Đoan Trang):");
+                if (password === "1234") {
+                    isAdminUnlocked = true;
+                    updateUnlockButtonUI();
+                    alert("🔓 Mở khóa thành công!");
+                } else if (password !== null) { alert("❌ Sai mật khẩu!"); }
+            }
+        }
+
+        function updateUnlockButtonUI() {
+            const btn = document.getElementById('btnUnlockAdmin');
+            if (!btn) return;
+            if (isAdminUnlocked) {
+                btn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition shadow-sm whitespace-nowrap";
+                btn.innerHTML = "<span>🔓</span> Đã Mở Khóa";
+            } else {
+                btn.className = "bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition shadow-sm whitespace-nowrap";
+                btn.innerHTML = "<span>🔒</span> Khóa";
+            }
+        }
+
+        function verifyAdminPermission() {
+            if (isAdminUnlocked) return true;
+            const password = prompt("🔐 Yêu cầu quyền Quản trị:\nVui lòng nhập mật khẩu:");
+            if (password === "1234") {
+                isAdminUnlocked = true;
+                updateUnlockButtonUI();
+                return true;
+            } else if (password !== null) { alert("❌ Sai mật khẩu!"); }
+            return false;
+        }
+
+        function initApp() {
+            loadDataFromStorage();
+            initPatientSelect();
+            initProcedureCheckboxes();
+            updateMachineStatsDisplay();
+            updateWaitingBadge();
+            syncOnlineTime(); 
+
+            setInterval(() => {
+                onlineNow = new Date(); 
+                renderTable();
+            }, 30000);
+        }
+        
+        function initProcedureCheckboxes() {
+            const container = document.getElementById('procedureCheckboxContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            availableProcedures.forEach(proc => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer bg-white p-2 rounded-xl border border-slate-200 hover:bg-slate-50';
+                label.innerHTML = `
+                    <input type="checkbox" name="patientProc" value="${proc.name}" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                    <span>${proc.name}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        function updateMachineStatsDisplay() {
+            const runningCount = treatments.filter(t => t && t.status === 'Đang thực hiện').length;
+            const total = Object.values(resourceConfig.machines || {}).reduce((a, b) => a + b, 0);
+            const statMachinesEl = document.getElementById('statMachines');
+            if (statMachinesEl) statMachinesEl.textContent = `${runningCount} / ${total}`;
+
+            const staffContainer = document.getElementById('staffConfigList');
+            if (staffContainer) {
+                staffContainer.innerHTML = '';
+                (resourceConfig.staff || []).forEach((st) => {
+                    const row = document.createElement('div');
+                    row.className = 'bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-xs';
+                    row.innerHTML = `
+                        <div class="flex items-center justify-between gap-2">
+                            <input type="text" value="${st.name || ''}" placeholder="Tên nhân sự" class="staff-name-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-bold bg-slate-50">
+                            <button type="button" onclick="this.parentElement.parentElement.remove()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs shrink-0">✕ Xóa</button>
+                        </div>
+                        <div>
+                            <input type="text" value="${st.specs || ''}" placeholder="Chuyên môn (VD: Điện châm, Cấy chỉ...)" class="staff-spec-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-medium bg-slate-50">
+                        </div>
+                    `;
+                    staffContainer.appendChild(row);
+                });
+            }
+
+            const container = document.getElementById('machineConfigInputs');
+            if (container) {
+                container.innerHTML = '';
+                Object.keys(resourceConfig.machines || {}).forEach(mName => {
+                    const val = resourceConfig.machines[mName];
+                    const div = document.createElement('div');
+                    div.className = 'bg-slate-50 p-3 rounded-2xl border border-slate-200';
+                    div.innerHTML = `
+                        <span class="block text-xs font-semibold text-slate-500">${mName}</span>
+                        <input type="number" data-machine="${mName}" value="${val}" class="machine-input w-full font-bold border border-slate-300 rounded-xl p-1.5 mt-1 text-center bg-white">
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        function addStaffRowConfig() {
+            const staffContainer = document.getElementById('staffConfigList');
+            if (!staffContainer) return;
+            const row = document.createElement('div');
+            row.className = 'bg-white p-3 rounded-2xl border border-slate-200 space-y-2 shadow-xs';
+            row.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <input type="text" value="" placeholder="Tên nhân sự mới" class="staff-name-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-bold bg-slate-50">
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs shrink-0">✕ Xóa</button>
+                </div>
+                <div>
+                    <input type="text" value="" placeholder="Chuyên môn (cách nhau bởi dấu phẩy)" class="staff-spec-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-medium bg-slate-50">
+                </div>
+            `;
+            staffContainer.appendChild(row);
+        }
+
+        function updateWaitingBadge() {
+            const badge = document.getElementById('waitingCountBadge');
+            if (badge) badge.textContent = patientsWaiting.length;
+        }
+
+        function initPatientSelect() {
+            const select = document.getElementById('selectExistingPatient');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Chọn bệnh nhân mẫu --</option>';
+            masterPatientDatabase.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.hsba;
+                opt.textContent = `${p.name} (${p.hsba}) - [${(p.dates || []).length} buổi]`;
+                select.appendChild(opt);
+            });
+        }
+
+        function autofillPatientData() {
+            const hsba = document.getElementById('selectExistingPatient').value;
+            if (!hsba) return;
+            const found = masterPatientDatabase.find(p => p.hsba === hsba);
+            if (found) {
+                document.getElementById('pName').value = found.name;
+                document.getElementById('pHsba').value = found.hsba;
+                document.getElementById('pType').value = found.type;
+                document.getElementById('pDoctor').value = found.doctor || 'BS Đoan Trang';
+                initCalendarPicker(found.dates || []);
+                document.querySelectorAll('input[name="patientProc"]').forEach(chk => {
+                    chk.checked = found.procedures.includes(chk.value);
+                });
+            }
+        }
+
+        function openModal(id) { 
+            if ((id === 'modalConfigResources' || id === 'modalExcel') && !verifyAdminPermission()) return;
+            if (id === 'modalConfigResources') updateMachineStatsDisplay();
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+        }
+
+        function closeModal(id) { 
+            const el = document.getElementById(id);
+            if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+        }
+
+        function openAddModal() {
+           if (!verifyAdminPermission()) return;
+           document.getElementById('editIndex').value = -1;
+           document.getElementById('modalPatientTitle').innerHTML = '<span>➕</span> Thêm Bệnh Nhân Vào Danh Sách Chờ';
+           document.getElementById('btnSavePatient').textContent = 'Lưu Vào Danh Sách Chờ';
+           const selectEl = document.getElementById('selectExistingPatient');
+           if (selectEl.value) { autofillPatientData(); } 
+           else {
+               document.getElementById('pName').value = '';
+               document.getElementById('pHsba').value = '';
+               initCalendarPicker([]);
+               document.querySelectorAll('input[name="patientProc"]').forEach(chk => chk.checked = false);
+           }
+            openModal('modalAddPatient');
+        }
+
+        function openWaitingListModal() {
+            renderWaitingListTable();
+            openModal('modalWaitingList');
+        }
+
+        function renderWaitingListTable() {
+            const selectedDate = document.getElementById('currentDate').value;
+            const tbody = document.getElementById('waitingListTableBody');
+            const filteredWaiting = patientsWaiting.filter(p => (p.dates || []).includes(selectedDate));
+            document.getElementById('modalWaitingCount').textContent = filteredWaiting.length;
+            if (filteredWaiting.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400 italic">Danh sách chờ ngày ${selectedDate} đang trống.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = '';
+            filteredWaiting.forEach((p, idx) => {
+                const originalIndex = patientsWaiting.indexOf(p);
+                const datesCount = (p.dates || []).length;
+                const datesSummary = (p.dates || []).join(', ');
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-500">#${idx + 1}</td>
+                    <td class="p-3 font-bold text-slate-700">${p.name}</td>
+                    <td class="p-3 font-mono text-blue-600">${p.hsba}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${p.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${p.type}</span></td>
+                    <td class="p-3 text-slate-600 font-medium">${(p.procedures || []).join(', ')}</td>
+                    <td class="p-3 text-center font-bold text-blue-600" title="${datesSummary}">${datesCount} buổi (${datesSummary})</td>
+                    <td class="p-3 text-slate-600">${p.doctor}</td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="editWaitingPatient(${originalIndex})" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold">Sửa</button>
+                        <button onclick="deleteWaitingPatient(${originalIndex})" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editWaitingPatient(index) {
+            if (!verifyAdminPermission()) return;
+            const p = patientsWaiting[index];
+            document.getElementById('editIndex').value = index;
+            document.getElementById('pName').value = p.name;
+            document.getElementById('pHsba').value = p.hsba;
+            document.getElementById('pType').value = p.type;
+            document.getElementById('pDoctor').value = p.doctor;
+            initCalendarPicker(p.dates || []);
+            document.querySelectorAll('input[name="patientProc"]').forEach(chk => {
+                chk.checked = (p.procedures || []).includes(chk.value);
+            });
+            document.getElementById('modalPatientTitle').innerHTML = `<span>✏️</span> Sửa Bệnh Nhân (#${index + 1})`;
+            document.getElementById('btnSavePatient').textContent = 'Cập Nhật';
+            closeModal('modalWaitingList');
+            openModal('modalAddPatient');
+        }
+
+        function deleteWaitingPatient(index) {
+            if (!verifyAdminPermission()) return;
+            if (confirm(`Xóa bệnh nhân "${patientsWaiting[index].name}" khỏi danh sách chờ?`)) {
+                patientsWaiting.splice(index, 1);
+                updateWaitingBadge();
+                renderWaitingListTable();
+                saveDataToStorage();
+            }
+        }
+
+        function savePatientForm() {
+            const editIdx = parseInt(document.getElementById('editIndex').value);
+            const name = document.getElementById('pName').value.trim();
+            const hsba = document.getElementById('pHsba').value.trim();
+            const type = document.getElementById('pType').value;
+            const doctor = document.getElementById('pDoctor').value;
+            const selectedProcs = [];
+            document.querySelectorAll('input[name="patientProc"]:checked').forEach(chk => selectedProcs.push(chk.value));
+
+            if (!name || !hsba) { alert('Vui lòng nhập họ tên và mã HSBA!'); return; }
+            if (selectedPatientDates.length === 0) { alert('Vui lòng chọn ít nhất một ngày điều trị trên lịch!'); return; }
+            if (selectedProcs.length === 0) { alert('Vui lòng chọn ít nhất một kỹ thuật điều trị!'); return; }
+            
+            const patientData = { name, hsba, type, dates: [...selectedPatientDates], procedures: selectedProcs, doctor };
+            if (editIdx === -1) patientsWaiting.push(patientData);
+            else patientsWaiting[editIdx] = patientData;
+
+            updateWaitingBadge();
+            saveDataToStorage();
+            closeModal('modalAddPatient');
+            openWaitingListModal();
+        }
+
+        function saveResourcesConfig() {
+            const newStaffList = [];
+            document.querySelectorAll('#staffConfigList > div').forEach(row => {
+                const nameInp = row.querySelector('.staff-name-inp');
+                const specInp = row.querySelector('.staff-spec-inp');
+                if (nameInp && nameInp.value.trim()) {
+                    newStaffList.push({ name: nameInp.value.trim(), specs: specInp ? specInp.value.trim() : '' });
+                }
+            });
+            if (newStaffList.length > 0) resourceConfig.staff = newStaffList;
+
+            document.querySelectorAll('.machine-input').forEach(inp => {
+                const mName = inp.getAttribute('data-machine');
+                resourceConfig.machines[mName] = parseInt(inp.value) || 1;
+            });
+
+            updateMachineStatsDisplay();
+            saveDataToStorage();
+            alert('Đã lưu cấu hình nhân sự & chuyên môn thành công!');
+            closeModal('modalConfigResources');
+            renderTable();
+        }
+
+        function downloadSampleTemplate() {
+            const sampleData = [
+                { "Họ tên": "Nguyễn Văn An", "Mã HSBA": "HSBA0001", "Đối tượng": "Nội trú", "Ngày bắt đầu": "2026-10-01", "Số buổi": 3, "Kỹ thuật điều trị": "Kéo cột sống (15p), Điện châm (20p)", "BS chỉ định": "BS Đoan Trang" },
+                { "Họ tên": "Trần Thị Bình", "Mã HSBA": "HSBA0002", "Đối tượng": "Ngoại trú", "Ngày điều trị": "2026-10-02, 2026-10-04", "Số buổi": "", "Kỹ thuật điều trị": "Sóng ngắn (15p), Thủy châm (5p)", "BS chỉ định": "BS Đại" }
+            ];
+            const worksheet = XLSX.utils.json_to_sheet(sampleData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachCho");
+            XLSX.writeFile(workbook, "Mau_Danh_Sach_Benh_Nhan_YHCT.xlsx");
+        }
+
+        function handleExcelUpload() {
+            const fileInput = document.getElementById('excelFile');
+            const statusEl = document.getElementById('excelStatus');
+            if (!fileInput.files || fileInput.files.length === 0) { 
+                alert('Vui lòng chọn file Excel!'); 
+                return; 
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+                    if (jsonRows.length === 0) { alert('File Excel trống!'); return; }
+
+                    let importedCount = 0;
+                    let updatedCount = 0;
+
+                    jsonRows.forEach(row => {
+                        const getVal = (keys) => {
+                            for (let k of keys) {
+                                for (let rKey of Object.keys(row)) {
+                                    if (rKey.trim().toLowerCase() === k.toLowerCase()) {
+                                        return row[rKey];
+                                    }
+                                }
+                            }
+                            return undefined;
+                        };
+
+                        const name = getVal(['Họ tên', 'Ho ten', 'Name', 'Bệnh nhân', 'Benh nhan']);
+                        const hsba = getVal(['Mã HSBA', 'Ma HSBA', 'HSBA', 'Mã bệnh án', 'Ma benh an']);
+                        const type = getVal(['Đối tượng', 'Doi tuong', 'Loại', 'Loai']) || 'Ngoại trú';
+                        const dateStrInput = getVal(['Ngày điều trị', 'Ngay dieu tri', 'Dates', 'Ngày', 'Ngay']);
+                        const numSessions = getVal(['Số buổi', 'So buoi', 'Số lượng buổi', 'So luong buoi']);
+                        const startDateInput = getVal(['Ngày bắt đầu', 'Ngay bat dau', 'Từ ngày', 'Tu ngay']);
+                        const procStr = getVal(['Kỹ thuật điều trị', 'Ky thuat dieu tri', 'Ky thuat', 'Dịch vụ', 'Dich vu']) || 'Kéo cột sống (15p)';
+                        const doctor = getVal(['BS chỉ định', 'BS chi dinh', 'Bac si', 'Bác sĩ']) || 'BS Đoan Trang';
+
+                        if (name && hsba) {
+                            let datesArr = [];
+                            if (dateStrInput) {
+                                datesArr = String(dateStrInput).split(/[,;|]/).map(s => s.trim()).filter(s => s);
+                            } else if (numSessions && !isNaN(numSessions)) {
+                                let baseDate = startDateInput ? new Date(startDateInput) : new Date(document.getElementById('currentDate').value || Date.now());
+                                if (isNaN(baseDate)) baseDate = new Date();
+                                let count = parseInt(numSessions) || 1;
+                                for (let i = 0; i < count; i++) {
+                                    let d = new Date(baseDate);
+                                    d.setDate(baseDate.getDate() + i);
+                                    let yyyy = d.getFullYear();
+                                    let mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    let dd = String(d.getDate()).padStart(2, '0');
+                                    datesArr.push(`${yyyy}-${mm}-${dd}`);
+                                }
+                            } else {
+                                datesArr = [document.getElementById('currentDate').value || new Date().toISOString().split('T')[0]];
+                            }
+
+                            const procs = String(procStr).split(/[,;|]/).map(s => s.trim()).filter(s => s);
+                            let existing = patientsWaiting.find(p => p.hsba === String(hsba).trim());
+                            
+                            if (existing) {
+                                existing.dates = datesArr;
+                                existing.type = String(type).trim().toLowerCase().includes('nội') ? 'Nội trú' : 'Ngoại trú';
+                                existing.doctor = String(doctor).trim();
+                                procs.forEach(pr => { if (!existing.procedures.includes(pr)) existing.procedures.push(pr); });
+                                updatedCount++;
+                            } else {
+                                patientsWaiting.push({
+                                    name: String(name).trim(), hsba: String(hsba).trim(),
+                                    type: String(type).trim().toLowerCase().includes('nội') ? 'Nội trú' : 'Ngoại trú',
+                                    dates: datesArr, procedures: procs, doctor: String(doctor).trim()
+                                });
+                                importedCount++;
+                            }
+                        }
+                    });
+
+                    updateWaitingBadge();
+                    saveDataToStorage();
+                    statusEl.textContent = `✅ Thêm mới: ${importedCount}, Cập nhật: ${updatedCount} BN!`;
+                    setTimeout(() => { closeModal('modalExcel'); statusEl.textContent = ''; fileInput.value = ''; }, 2000);
+                } catch (err) { alert('Lỗi đọc file Excel: ' + err.message); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function getPerformerAndAssistant(procName, startMinutes, isSaturday) {
+            let cat = procName.split('(')[0].trim().toLowerCase();
+            let found = availableProcedures.find(p => p.name.toLowerCase() === procName.toLowerCase());
+            let categoryName = found ? found.category.toLowerCase() : cat;
+
+            let staffList = (resourceConfig.staff && resourceConfig.staff.length > 0) ? resourceConfig.staff : defaultResourceConfig.staff;
+
+            let qualifiedStaff = staffList.filter(st => {
+                let specs = (st.specs || '').toLowerCase();
+                return specs.includes(categoryName) || specs.includes(cat) || specs.includes('tổng hợp');
+            });
+
+            let performer = staffList[0].name;
+            let assistant = '-';
+
+            if (qualifiedStaff.length > 0) {
+                if (categoryName.includes('tập vltl') || categoryName.includes('xung kích') || categoryName.includes('siêu âm') || categoryName.includes('cấy chỉ') || categoryName.includes('thủy châm')) {
+                    let doctors = qualifiedStaff.filter(s => s.name.startsWith('BS'));
+                    if (doctors.length > 0) {
+                        if (startMinutes < 780) {
+                            performer = doctors.find(d => d.name.includes('Huyền Trang')) ? 'BS Trần Thị Huyền Trang' : doctors[0].name;
+                        } else {
+                            performer = isSaturday ? (doctors.find(d => d.name.includes('Huyền Trang')) ? 'BS Trần Thị Huyền Trang' : doctors[0].name) : (doctors.find(d => d.name.includes('Đoan Trang')) ? 'BS Trần Thị Đoan Trang' : doctors[0].name);
+                        }
+                    } else {
+                        performer = qualifiedStaff[0].name;
+                    }
+                } else if (categoryName.includes('điện châm')) {
+                    let ysiList = qualifiedStaff.filter(s => s.name.startsWith('YS') || s.name.startsWith('BS') || s.name.startsWith('KTV'));
+                    if (ysiList.length === 0) ysiList = qualifiedStaff;
+                    let pickIdx = Math.floor(startMinutes / 20) % ysiList.length;
+                    performer = ysiList[pickIdx].name;
+
+                    let potentialAssts = staffList.filter(s => s.name !== performer);
+                    if (potentialAssts.length > 0) {
+                        assistant = potentialAssts[Math.floor(startMinutes / 20) % potentialAssts.length].name;
+                    }
+                } else {
+                    performer = qualifiedStaff[0].name;
+                }
+            }
+
+            return {
+                category: found ? found.category : procName.split('(')[0].trim(),
+                duration: found ? found.duration : 15,
+                performer: performer,
+                assistant: assistant
+            };
+        }
+        
+        const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz0WDNsDO55L3RpJgQXBaUbKS16TKcxuyN4xVq7nNBFRRIbNc0htXw-W8zTHSMIl8Wl1w/exec";
+
+        async function syncToGoogleSheet(dateStr, dailyData) {
+            if (!GOOGLE_SHEET_WEB_APP_URL || GOOGLE_SHEET_WEB_APP_URL.length < 20) return;
+            try {
+                await fetch(GOOGLE_SHEET_WEB_APP_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: dateStr, treatments: dailyData })
+                });
+            } catch (error) { console.error("Lỗi đồng bộ Google Sheet:", error); }
+        }
+
+        async function manualSyncToGoogleSheet() {
+            if (!verifyAdminPermission()) return;
+            const selectedDate = document.getElementById('currentDate').value;
+            const currentTreatments = allTreatments[selectedDate] || [];
+            if (currentTreatments.length === 0) { alert(`Không có lịch ngày ${selectedDate} để lưu!`); return; }
+            if (confirm(`Đồng bộ lịch ngày ${selectedDate} (${currentTreatments.length} lượt) lên Google Sheet?`)) {
+                await syncToGoogleSheet(selectedDate, currentTreatments);
+                alert(`☁ Đã gửi dữ liệu lên Google Sheet thành công!`);
+            }
+        }
+
+        function autoAllocateDaily() {
+            if (!verifyAdminPermission()) return;
+            if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
+
+            let mapDateToPatients = {};
+            patientsWaiting.forEach(p => {
+                let datesList = p.dates || [];
+                if (datesList.length === 0) return;
+                let procsList = p.procedures || [];
+                if (procsList.length === 0) return;
+
+                datesList.forEach((dateStr, sessionIdx) => {
+                    let targetDateStr = dateStr.trim();
+                    if (targetDateStr.includes('/')) {
+                        let parts = targetDateStr.split('/');
+                        if (parts.length === 2) targetDateStr = `${onlineNow.getFullYear()}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    }
+                    if (!mapDateToPatients[targetDateStr]) mapDateToPatients[targetDateStr] = [];
+                    
+                    procsList.forEach((procName) => {
+                        mapDateToPatients[targetDateStr].push({ 
+                            patient: p, 
+                            procedure: procName, 
+                            sessionIdx, 
+                            totalSessions: datesList.length, 
+                            rawDateStr: dateStr 
+                        });
+                    });
+                });
+            });
+
+            Object.keys(mapDateToPatients).forEach(targetDateStr => {
+                let targetDateObj = new Date(targetDateStr);
+                let isSaturday = (targetDateObj.getDay() === 6);
+                let baseTimeMinutes = 7 * 60 + 30; // 07:30 sáng
+
+                let machineFreeTime = {};
+                Object.keys(resourceConfig.machines || {}).forEach(mType => {
+                    let count = resourceConfig.machines[mType];
+                    for (let i = 1; i <= count; i++) machineFreeTime[`${mType}_${i}`] = baseTimeMinutes;
+                });
+
+                let performerFreeTime = {};
+                let patientFreeTime = {}; 
+                let dailyTreatments = [];
+                let items = mapDateToPatients[targetDateStr];
+
+                items.forEach(item => {
+                    let p = item.patient;
+                    let procName = item.procedure;
+                    let sessionIdx = item.sessionIdx;
+                    let totalSessions = item.totalSessions;
+                    let rawDateStr = item.rawDateStr;
+
+                    let details = getPerformerAndAssistant(procName, baseTimeMinutes, isSaturday);
+                    let duration = details.duration;
+                    let cat = details.category;
+                    let performer = details.performer;
+
+                    let bestMachineKey = null;
+                    let earliestMachineTime = Infinity;
+                    let catLower = cat.toLowerCase();
+                    Object.keys(machineFreeTime).forEach(mKey => {
+                       if (mKey.toLowerCase().startsWith(catLower) && machineFreeTime[mKey] < earliestMachineTime) {
+                           earliestMachineTime = machineFreeTime[mKey];
+                           bestMachineKey = mKey;
+                       }
+                    });
+
+                    if (!bestMachineKey) {
+                        bestMachineKey = `${cat}_1`;
+                        if (machineFreeTime[bestMachineKey] === undefined) machineFreeTime[bestMachineKey] = baseTimeMinutes;
+                        earliestMachineTime = machineFreeTime[bestMachineKey];
+                    }
+
+                    let earliestPerformerTime = baseTimeMinutes;
+                    if (performer && performer !== '-') {
+                        if (performerFreeTime[performer] === undefined) performerFreeTime[performer] = baseTimeMinutes;
+                        earliestPerformerTime = performerFreeTime[performer];
+                    }
+
+                    let patientKey = p.hsba;
+                    let earliestPatientTime = patientFreeTime[patientKey] !== undefined ? patientFreeTime[patientKey] : baseTimeMinutes;
+
+                    let startTotalMin = Math.max(baseTimeMinutes, earliestMachineTime, earliestPerformerTime, earliestPatientTime);
+                    let endTotalMin = startTotalMin + duration;
+
+                    machineFreeTime[bestMachineKey] = endTotalMin + 5; 
+                    if (performer && performer !== '-') {
+                        performerFreeTime[performer] = endTotalMin + 5;
+                    }
+                    
+                    // 👉 THAY ĐỔI: Khoảng cách giữa các thủ thuật nối tiếp của bệnh nhân là 1 phút
+                    patientFreeTime[patientKey] = endTotalMin + 1; 
+
+                    let sHour = Math.floor(startTotalMin / 60), sMin = startTotalMin % 60;
+                    let eHour = Math.floor(endTotalMin / 60), eMin = endTotalMin % 60;
+
+                    dailyTreatments.push({
+                        name: p.name, hsba: p.hsba, type: p.type, 
+                        procedure: `${procName} (Ngày ${sessionIdx + 1}/${totalSessions} - ${rawDateStr})`,
+                        startTime: `${String(sHour).padStart(2, '0')}:${String(sMin).padStart(2, '0')}`, 
+                        endTime: `${String(eHour).padStart(2, '0')}:${String(eMin).padStart(2, '0')}`, 
+                        performer: details.performer, assistant: details.assistant || '-',
+                        machine: bestMachineKey.replace('_', ' '), doctor: p.doctor || 'BS Đoan Trang', status: 'Chờ thực hiện'
+                    });
+                });
+
+                if (dailyTreatments.length > 0) {
+                    allTreatments[targetDateStr] = dailyTreatments;
+                    syncToGoogleSheet(targetDateStr, dailyTreatments);
+                }
+            });
+
+            patientsWaiting = [];
+            updateWaitingBadge();
+            saveDataToStorage();
+            renderTable();
+            alert(`⚡ Phân bổ thành công! Các thủ thuật liên tiếp của bệnh nhân đã được xếp cách nhau đúng 1 phút.`);
+        }
+        
+        function updateTreatmentStaff(index, field, value) {
+            const selectedDate = document.getElementById('currentDate').value;
+            if (allTreatments[selectedDate] && allTreatments[selectedDate][index]) {
+                allTreatments[selectedDate][index][field] = value;
+                saveDataToStorage();
+                syncToGoogleSheet(selectedDate, allTreatments[selectedDate]);
+            }
+        }
+
+        function timeToMinutes(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function renderTable() {
+            const selectedDate = document.getElementById('currentDate').value;
+            treatments = allTreatments[selectedDate] || [];
+            const tbody = document.getElementById('scheduleTableBody');
+            const filterType = document.getElementById('filterType').value;
+            const searchKeyword = document.getElementById('tableSearchFilter').value.toLowerCase().trim();
+            
+            const yyyy = onlineNow.getFullYear();
+            const mm = String(onlineNow.getMonth() + 1).padStart(2, '0');
+            const dd = String(onlineNow.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            const currentTotalMin = onlineNow.getHours() * 60 + onlineNow.getMinutes();
+
+            treatments.forEach(t => {
+                if (!t) return; 
+                const startMin = timeToMinutes(t.startTime), endMin = timeToMinutes(t.endTime);
+                if (selectedDate > todayStr) t.status = 'Chờ thực hiện';
+                else if (selectedDate < todayStr) t.status = 'Đã hoàn thành';
+                else {
+                    if (currentTotalMin < startMin) t.status = 'Chờ thực hiện';
+                    else if (currentTotalMin >= startMin && currentTotalMin <= endMin) t.status = 'Đang thực hiện';
+                    else t.status = 'Đã hoàn thành';
+                }
+            });
+
+            let filtered = treatments.filter(t => {
+                if (!t) return false;
+                const matchType = (filterType === 'all' || t.type === filterType);
+                const matchSearch = (t.name || '').toLowerCase().includes(searchKeyword) || 
+                                    (t.hsba || '').toLowerCase().includes(searchKeyword) || 
+                                    (t.performer || '').toLowerCase().includes(searchKeyword) || 
+                                    (t.doctor || '').toLowerCase().includes(searchKeyword);
+                return matchType && matchSearch;
+            });
+
+            const totalCapacity = Object.values(resourceConfig.machines || {}).reduce((a, b) => a + b, 0);
+            const runningCount = treatments.filter(t => t && t.status === 'Đang thực hiện').length;
+
+            const statMachinesEl = document.getElementById('statMachines');
+            if (statMachinesEl) statMachinesEl.textContent = `${runningCount} / ${totalCapacity}`;
+            
+            const tableRowCountEl = document.getElementById('tableRowCount');
+            if (tableRowCountEl) tableRowCountEl.textContent = `${filtered.length} dòng`;
+
+            const statTotalEl = document.getElementById('statTotal');
+            if (statTotalEl) statTotalEl.textContent = treatments.length;
+
+            const statInpatientEl = document.getElementById('statInpatient');
+            if (statInpatientEl) statInpatientEl.textContent = treatments.filter(t => t.type === 'Nội trú').length;
+
+            const statOutpatientEl = document.getElementById('statOutpatient');
+            if (statOutpatientEl) statOutpatientEl.textContent = treatments.filter(t => t.type === 'Ngoại trú').length;
+
+            const statDoingEl = document.getElementById('statDoing');
+            if (statDoingEl) statDoingEl.textContent = runningCount;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Chưa có lịch cho ngày ${selectedDate}.</td></tr>`;
+                return;
+            }
+
+            const staffList = (resourceConfig.staff || []).map(s => s.name);
+            let staffOptions = staffList.map(doc => `<option value="${doc}">${doc}</option>`).join('');
+            let assistantOptions = `<option value="-">- Không có -</option>` + staffList.map(st => `<option value="${st}">${st}</option>`).join('');
+
+            tbody.innerHTML = '';
+            filtered.forEach((t) => {
+                if (!t) return;
+                const originalIndex = treatments.indexOf(t);
+                const typeBadge = t.type === 'Nội trú' 
+                    ? `<span class="bg-blue-100 text-blue-800 text-[11px] px-2.5 py-1 rounded-full font-bold">🛏️ Nội trú</span>` 
+                    : `<span class="bg-indigo-100 text-indigo-800 text-[11px] px-2.5 py-1 rounded-full font-bold">🚶 Ngoại trú</span>`;
+
+                let statusBadge = '';
+                if (t.status === 'Đang thực hiện') statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1.5 rounded-full font-bold inline-flex items-center gap-1 shadow-sm">⚡ Đang thực hiện</span>`;
+                else if (t.status === 'Chờ thực hiện') statusBadge = `<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1.5 rounded-full font-bold inline-flex items-center gap-1 shadow-sm">⏳ Chờ thực hiện</span>`;
+                else statusBadge = `<span class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1.5 rounded-full font-bold inline-flex items-center gap-1 shadow-sm">✅ Đã hoàn thành</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="p-3.5 font-bold text-slate-700">${t.name}</td>
+                    <td class="p-3.5 text-blue-600 font-bold">${t.hsba}</td>
+                    <td class="p-3.5">${typeBadge}</td>
+                    <td class="p-3.5 font-medium text-slate-600">${t.procedure}</td>
+                    <td class="p-3.5 font-mono font-semibold text-emerald-700">${t.startTime}</td>
+                    <td class="p-3.5 font-mono font-semibold text-rose-700">${t.endTime}</td>
+                    <td class="p-3.5">
+                        <select onchange="updateTreatmentStaff(${originalIndex}, 'performer', this.value)" class="border border-purple-300 bg-purple-50 text-purple-900 rounded-lg p-1.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-purple-400">
+                            ${staffOptions.replace(`value="${t.performer}"`, `value="${t.performer}" selected`)}
+                        </select>
+                    </td>
+                    <td class="p-3.5">
+                        <select onchange="updateTreatmentStaff(${originalIndex}, 'assistant', this.value)" class="border border-slate-300 bg-slate-50 text-slate-700 rounded-lg p-1.5 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-400">
+                            ${assistantOptions.replace(`value="${t.assistant || '-'}"`, `value="${t.assistant || '-'}" selected`)}
+                        </select>
+                    </td>
+                    <td class="p-3.5 font-bold text-slate-700">${t.machine}</td>
+                    <td class="p-3.5 text-slate-600">${t.doctor}</td>
+                    <td class="p-3.5 text-center">${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }      
+
+        initApp();
+    </script>
+</body>
+</html>
