@@ -116,17 +116,17 @@
                 <table class="min-w-full divide-y divide-slate-200 text-xs sm:text-sm text-left">
                     <thead class="bg-slate-100/70 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
                         <tr>
-                            <th class="p-3.5">Họ Tên</th>
-                            <th class="p-3.5">Mã HSBA</th>
-                            <th class="p-3.5">Đối Tượng</th>
-                            <th class="p-3.5">Dịch Vụ Kỹ Thuật</th>
-                            <th class="p-3.5">Bắt Đầu</th>
-                            <th class="p-3.5">Kết Thúc</th>
-                            <th class="p-3.5">Người Thực Hiện</th>
-                            <th class="p-3.5">Người Phụ</th>
-                            <th class="p-3.5">Mã Máy</th>
-                            <th class="p-3.5">BS Chỉ Định</th>
-                            <th class="p-3.5 text-center">Trạng Thái</th>
+                            <th class="p-3.5 whitespace-nowrap">Họ Tên</th>
+                            <th class="p-3.5 whitespace-nowrap">Mã HSBA</th>
+                            <th class="p-3.5 whitespace-nowrap">Đối Tượng</th>
+                            <th class="p-3.5 whitespace-nowrap">Dịch Vụ Kỹ Thuật</th>
+                            <th class="p-3.5 whitespace-nowrap">Bắt Đầu</th>
+                            <th class="p-3.5 whitespace-nowrap">Kết Thúc</th>
+                            <th class="p-3.5 whitespace-nowrap min-w-[200px]">Người Thực Hiện</th>
+                            <th class="p-3.5 whitespace-nowrap min-w-[150px]">Người Phụ</th>
+                            <th class="p-3.5 whitespace-nowrap">Mã Máy</th>
+                            <th class="p-3.5 whitespace-nowrap">BS Chỉ Định</th>
+                            <th class="p-3.5 whitespace-nowrap text-center">Trạng Thái</th>
                         </tr>
                     </thead>
                     <tbody id="scheduleTableBody" class="divide-y divide-slate-100">
@@ -654,29 +654,37 @@
             alert('⚡ Phân bổ lịch thành công!');
         }
 
-        function getPerformerAndAssistant(procName) {
+                function getPerformerAndAssistant(procName) {
             let cat = procName.split('(')[0].trim().toLowerCase();
             let found = availableProcedures.find(p => p.name.toLowerCase() === procName.toLowerCase());
             let categoryName = found ? found.category.toLowerCase() : cat;
             let staffList = resourceConfig.staff;
 
             let performer = staffList[0].name;
-            let assistant = '-';
+            let assistant = '-'; // Mặc định không có người phụ
 
+            // Phân bổ người thực hiện và người phụ chuẩn theo chuyên môn
             if (categoryName.includes('điện châm') || categoryName.includes('cứu ngải')) {
                 let ysi = staffList.filter(s => s.name.startsWith('YS') || s.name.startsWith('BS'));
                 if (ysi.length > 0) performer = ysi[0].name;
-                let assistantObj = staffList.find(s => s.name.includes('Bích Thảo'));
+                let assistantObj = staffList.find(s => s.name.includes('Bích Thảo') || s.name.includes('Quang'));
                 if (assistantObj) assistant = assistantObj.name;
             } else if (categoryName.includes('cấy chỉ') || categoryName.includes('thủy châm') || categoryName.includes('xung kích')) {
                 let doc = staffList.find(s => s.name.startsWith('BS'));
                 if (doc) performer = doc.name;
+                assistant = '-';
             } else {
                 let ktv = staffList.find(s => s.name.startsWith('KTV'));
                 if (ktv) performer = ktv.name;
+                assistant = '-'; // Các máy VLTL thông thường không cần người phụ
             }
 
-            return { category: found ? found.category : procName.split('(')[0].trim(), duration: found ? found.duration : 15, performer, assistant };
+            return { 
+                category: found ? found.category : procName.split('(')[0].trim(), 
+                duration: found ? found.duration : 15, 
+                performer, 
+                assistant 
+            };
         }
 
         const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzD0aae615n83RR4P4lIlysIzsU5OeTpSl7_4ogIJfcKXzUF8SvZl337EaA04o0zXskxg/exec";
@@ -762,17 +770,17 @@
             treatments.forEach((t, idx) => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition">
-                        <td class="p-3.5 font-bold text-slate-700">${t.name}</td>
-                        <td class="p-3.5 text-blue-600 font-bold">${t.hsba}</td>
-                        <td class="p-3.5"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${t.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${t.type}</span></td>
-                        <td class="p-3.5 font-medium text-slate-600">${t.procedure}</td>
-                        <td class="p-3.5 font-mono font-semibold text-emerald-700">${t.startTime}</td>
-                        <td class="p-3.5 font-mono font-semibold text-rose-700">${t.endTime}</td>
-                        <td class="p-3.5"><input type="text" value="${t.performer}" onchange="allTreatments['${selectedDate}'][${idx}].performer=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-purple-50"></td>
-                        <td class="p-3.5"><input type="text" value="${t.assistant}" onchange="allTreatments['${selectedDate}'][${idx}].assistant=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-slate-50"></td>
-                        <td class="p-3.5 font-bold">${t.machine}</td>
-                        <td class="p-3.5">${t.doctor}</td>
-                        <td class="p-3.5 text-center"><span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">${t.status}</span></td>
+                        <td class="p-3.5 font-bold text-slate-700 whitespace-nowrap">${t.name}</td>
+                        <td class="p-3.5 text-blue-600 font-bold whitespace-nowrap">${t.hsba}</td>
+                        <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${t.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${t.type}</span></td>
+                        <td class="p-3.5 font-medium text-slate-600 whitespace-nowrap">${t.procedure}</td>
+                        <td class="p-3.5 font-mono font-semibold text-emerald-700 whitespace-nowrap">${t.startTime}</td>
+                        <td class="p-3.5 font-mono font-semibold text-rose-700 whitespace-nowrap">${t.endTime}</td>
+                        <td class="p-3.5 min-w-[200px]"><input type="text" value="${t.performer}" onchange="allTreatments['${selectedDate}'][${idx}].performer=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-purple-50 font-medium"></td>
+                        <td class="p-3.5 min-w-[150px]"><input type="text" value="${t.assistant}" onchange="allTreatments['${selectedDate}'][${idx}].assistant=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-slate-50 font-medium"></td>
+                        <td class="p-3.5 font-bold whitespace-nowrap">${t.machine}</td>
+                        <td class="p-3.5 whitespace-nowrap">${t.doctor}</td>
+                        <td class="p-3.5 text-center whitespace-nowrap"><span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold">${t.status}</span></td>
                     </tr>`;
             });
         }
