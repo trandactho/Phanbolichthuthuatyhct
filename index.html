@@ -6,14 +6,14 @@
     <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.5 - Auto Sanitized)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        input[type="date"] { color-scheme: dark; }
+        .backdrop-blur, .backdrop-blur-sm {
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+        }
+    </style>
 </head>
-<style>
-    input[type="date"] { color-scheme: dark; }
-    .backdrop-blur, .backdrop-blur-sm {
-        -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
-    }
-</style>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
 
     <!-- Top Header -->
@@ -265,7 +265,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+        <!-- JAVASCRIPT LOGIC (ĐÃ TỐI ƯU & SỬA LỖI) -->
     <script>
         let availableProcedures = [
             { name: 'Kéo cột sống (15p)', category: 'Kéo cột sống', duration: 15 },
@@ -307,6 +307,7 @@
         let patientsWaiting = [];
         let allTreatments = {}; 
         let treatments = [];     
+        let fetchedDates = {}; 
         let isAdminUnlocked = false; 
         let onlineNow = new Date();
 
@@ -314,7 +315,18 @@
         let currentCalMonth = 8;
         let selectedPatientDates = [];
 
-        // HÀM CHUẨN HÓA DỮ LIỆU TỰ ĐỘNG - CHỐNG LỆCH CỘT TRUYỀN HÌNH
+        function getLocalDateStr(d = new Date()) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function updateWaitingBadge() {
+            const badge = document.getElementById('waitingCountBadge');
+            if (badge) badge.textContent = patientsWaiting.length;
+        }
+
         function sanitizeTreatmentRecord(t) {
             if (!t) return t;
             
@@ -349,24 +361,16 @@
                 return keywords.some(k => v.includes(k)) || /\d+$/.test(v);
             };
 
-            // Trường hợp assistant chứa Tên Máy, machine chứa Bác Sĩ, doctor chứa Trạng Thái
             if (isMachine(assistant) && isDoctor(machine) && isStatus(doctor)) {
-                status = doctor;
-                doctor = machine;
-                machine = assistant;
-                assistant = '-';
+                status = doctor; doctor = machine; machine = assistant; assistant = '-';
             } else if (isMachine(assistant) && isDoctor(machine)) {
-                doctor = machine;
-                machine = assistant;
-                assistant = '-';
+                doctor = machine; machine = assistant; assistant = '-';
             } else if (isDoctor(machine) && isStatus(doctor)) {
-                status = doctor;
-                doctor = machine;
+                status = doctor; doctor = machine;
             }
 
             if (isStatus(doctor) && !isDoctor(doctor)) {
-                status = doctor;
-                doctor = 'BS Đoan Trang';
+                status = doctor; doctor = 'BS Đoan Trang';
             }
 
             return { name, hsba, type, procedure, startTime, endTime, performer, assistant, machine, doctor, status };
@@ -445,6 +449,7 @@
             localStorage.setItem('yhct_resourceConfig', JSON.stringify(resourceConfig));
             localStorage.setItem('yhct_patientsWaiting', JSON.stringify(patientsWaiting));
             localStorage.setItem('yhct_treatments', JSON.stringify(allTreatments));
+            updateWaitingBadge();
         }
 
         function loadDataFromStorage() {
@@ -459,6 +464,7 @@
                     sanitizeAllData();
                 }
             } catch(e) { }
+            updateWaitingBadge();
         }
 
         function resetAppStorage() {
@@ -469,16 +475,19 @@
         }
 
         async function syncOnlineTime() {
+            const statusEl = document.getElementById('onlineTimeStatus');
             try {
                 const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Ho_Chi_Minh');
                 const data = await response.json();
                 if (data && data.datetime) {
                     onlineNow = new Date(data.datetime);
                     document.getElementById('currentDate').value = data.datetime.substring(0, 10);
+                    if (statusEl) statusEl.textContent = '🌐 Đã đồng bộ giờ server online';
                 }
             } catch (e) {
                 onlineNow = new Date();
-                document.getElementById('currentDate').value = onlineNow.toISOString().split('T')[0];
+                document.getElementById('currentDate').value = getLocalDateStr(onlineNow);
+                if (statusEl) statusEl.textContent = '⚠️ Dùng giờ thiết bị (Chế độ ngoại tuyến)';
             }
             renderTable();
         }
@@ -506,15 +515,14 @@
         }
 
         function initApp() {
-    loadDataFromStorage();
-    initProcedureCheckboxes();
-    syncOnlineTime();
+            loadDataFromStorage();
+            initProcedureCheckboxes();
+            syncOnlineTime();
 
-    // Tự động cập nhật bảng mỗi 30 giây để nhảy trạng thái thời gian thực
-    setInterval(() => {
-        renderTable();
-    }, 30000);
-}
+            setInterval(() => {
+                renderTable();
+            }, 30000);
+        }
 
         function initProcedureCheckboxes() {
             const container = document.getElementById('procedureCheckboxContainer');
@@ -621,8 +629,9 @@
             const tbody = document.getElementById('waitingListTableBody');
             tbody.innerHTML = patientsWaiting.length === 0 ? `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">Danh sách chờ trống.</td></tr>` : '';
             patientsWaiting.forEach((p, idx) => {
-                tbody.innerHTML += `<tr><td class="p-3 font-bold">#${idx+1}</td><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-blue-600">${p.hsba}</td><td class="p-3">${p.type}</td><td class="p-3">${p.procedures.join(', ')}</td><td class="p-3 text-center">${p.dates.join(', ')}</td><td class="p-3 text-center"><button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="bg-rose-600 text-white px-2 py-1 rounded text-xs">Xóa</button></td></tr>`;
+                tbody.innerHTML += `<tr><td class="p-3 font-bold">#${idx+1}</td><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-blue-600">${p.hsba}</td><td class="p-3">${p.type}</td><td class="p-3">${p.procedures.join(', ')}</td><td class="p-3 text-center">${p.dates.join(', ')}</td><td class="p-3 text-center"><button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="bg-rose-600 text-white px-2 py-1 rounded text-xs font-bold">Xóa</button></td></tr>`;
             });
+            updateWaitingBadge();
             openModal('modalWaitingList');
         }
 
@@ -635,9 +644,13 @@
 
             if (!name || !hsba || selectedPatientDates.length === 0 || selectedProcs.length === 0) { alert('Vui lòng điền đủ thông tin, ngày và thủ thuật!'); return; }
             patientsWaiting.push({ name, hsba, type, shiftChoice, dates: [...selectedPatientDates], procedures: selectedProcs, doctor: 'BS Đoan Trang' });
-            saveDataToStorage();
+            saveDataToStorage();            
             closeModal('modalAddPatient');
             alert('Đã lưu bệnh nhân vào danh sách chờ!');
+            document.getElementById('pName').value = '';
+            document.getElementById('pHsba').value = '';
+            selectedPatientDates = [];
+            document.querySelectorAll('input[name="patientProc"]').forEach(c => c.checked = false);
         }
 
         function autoAllocateDaily() {
@@ -649,63 +662,82 @@
                 (p.dates || []).forEach((dateStr, sessionIdx) => {
                     if (!mapDateToPatients[dateStr]) mapDateToPatients[dateStr] = [];
                     p.procedures.forEach(procName => {
-                        mapDateToPatients[dateStr].push({ patient: p, procedure: procName, sessionIdx, totalSessions: p.dates.length, rawDateStr: dateStr });
+                        mapDateToPatients[dateStr].push({ patient: p, procedure: procName, sessionIdx, totalSessions: p.dates.length });
                     });
                 });
             });
 
             Object.keys(mapDateToPatients).forEach(targetDateStr => {
-                let morningStart = 7 * 60 + 2;     // 07:02
-                let morningEndLimit = 12 * 60 + 30; // 12:30
-                let afternoonStart = 13 * 60;       // 13:00
-                let maxEveningLimit = 19 * 60;      // 19:00
+                let morningStart = 7 * 60 + 2;      // 07:02
+                let morningEndLimit = 12 * 60 + 30;  // 12:30
+                let afternoonStart = 13 * 60;        // 13:00
+                let maxEveningLimit = 19 * 60;       // 19:00
 
                 let machineFreeTime = {};
-                let performerFreeTime = {};
                 let patientFreeTime = {};
-                
+                let performerSchedules = {};
+
                 Object.keys(resourceConfig.machines || {}).forEach(mType => {
                     let count = resourceConfig.machines[mType];
                     for (let i = 1; i <= count; i++) machineFreeTime[`${mType}_${i}`] = morningStart;
                 });
 
                 let dailyTreatments = [];
+
                 mapDateToPatients[targetDateStr].forEach(item => {
                     let p = item.patient;
                     let procName = item.procedure;
                     let details = getPerformerAndAssistant(procName);
                     let duration = details.duration;
                     let cat = details.category;
-                    let performer = details.performer;
+                    let performer = details.performer || 'KTV';
+                    let setupDuration = 5;
+
+                    if (!performerSchedules[performer]) performerSchedules[performer] = [];
 
                     let preferredShift = p.shiftChoice || 'auto';
                     let baseTime = preferredShift === 'chieu' ? afternoonStart : morningStart;
 
                     let bestMachineKey = `${cat}_1`;
-                    let earliestMachine = Infinity;
+                    let earliestMachineTime = Infinity;
                     Object.keys(machineFreeTime).forEach(mKey => {
-                        if (mKey.toLowerCase().startsWith(cat.toLowerCase()) && machineFreeTime[mKey] < earliestMachine) {
-                            earliestMachine = machineFreeTime[mKey];
+                        if (mKey.toLowerCase().startsWith(cat.toLowerCase()) && machineFreeTime[mKey] < earliestMachineTime) {
+                            earliestMachineTime = machineFreeTime[mKey];
                             bestMachineKey = mKey;
                         }
                     });
                     if (machineFreeTime[bestMachineKey] === undefined) machineFreeTime[bestMachineKey] = baseTime;
 
-                    let earliestPerformer = performer && performer !== '-' ? (performerFreeTime[performer] || baseTime) : baseTime;
-                    let earliestPatient = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
+                    let earliestPatientTime = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
+                    let candidateStart = Math.max(baseTime, machineFreeTime[bestMachineKey], earliestPatientTime);
 
-                    let startMin = Math.max(baseTime, machineFreeTime[bestMachineKey], earliestPerformer, earliestPatient);
-                    if (preferredShift === 'auto' && startMin > morningEndLimit && startMin < afternoonStart) startMin = afternoonStart;
-
-                    let endMin = startMin + duration;
-                    if (endMin > maxEveningLimit) { endMin = maxEveningLimit; startMin = Math.max(afternoonStart, endMin - duration); }
-
-                    machineFreeTime[bestMachineKey] = endMin + 2; 
-                    if (performer && performer !== '-') {
-                        let isQuickStaff = cat.toLowerCase().includes('châm') || cat.toLowerCase().includes('vltl') || cat.toLowerCase().includes('xung kích');
-                        performerFreeTime[performer] = startMin + (isQuickStaff ? 5 : duration); 
+                    if (preferredShift === 'auto' && candidateStart + duration > morningEndLimit && candidateStart < afternoonStart) {
+                        candidateStart = afternoonStart;
                     }
+
+                    const isPerformerFree = (perf, startM, setupM) => {
+                        let endM = startM + setupM;
+                        return !performerSchedules[perf].some(slot => !(endM <= slot.start || startM >= slot.end));
+                    };
+
+                    while (!isPerformerFree(performer, candidateStart, setupDuration)) {
+                        candidateStart += 1;
+                        if (preferredShift === 'auto' && candidateStart + duration > morningEndLimit && candidateStart < afternoonStart) {
+                            candidateStart = afternoonStart;
+                        }
+                    }
+
+                    let startMin = candidateStart;
+                    let endMin = startMin + duration;
+
+                    if (endMin > maxEveningLimit) {
+                        endMin = maxEveningLimit;
+                        startMin = Math.max(afternoonStart, endMin - duration);
+                    }
+
+                    machineFreeTime[bestMachineKey] = endMin + 1;
                     patientFreeTime[p.hsba] = endMin + 1;
+                    performerSchedules[performer].push({ start: startMin, end: startMin + setupDuration });
 
                     let sH = Math.floor(startMin / 60), sM = startMin % 60;
                     let eH = Math.floor(endMin / 60), eM = endMin % 60;
@@ -722,11 +754,11 @@
 
                 if (dailyTreatments.length > 0) allTreatments[targetDateStr] = dailyTreatments;
             });
-
+            
             patientsWaiting = [];
             saveDataToStorage();
             renderTable();
-            alert('⚡ Phân bổ lịch thành công!');
+            alert('⚡ Đã phân bổ tối ưu công suất song song thành công!');
         }
 
         function getPerformerAndAssistant(procName) {
@@ -775,10 +807,12 @@
         }
 
         async function fetchDataFromCloud(dateStr) {
+            if (fetchedDates[dateStr]) return;
+            fetchedDates[dateStr] = true;
             try {
                 const response = await fetch(`${GOOGLE_SHEET_WEB_APP_URL}?date=${dateStr}`);
                 const result = await response.json();
-                if (result && result.treatments) { 
+                if (result && Array.isArray(result.treatments) && result.treatments.length > 0) { 
                     allTreatments[dateStr] = result.treatments; 
                     sanitizeAllData();
                     renderTable(); 
@@ -786,7 +820,22 @@
             } catch(e) {}
         }
 
-        /* HÀM NẠP EXCEL THÔNG MINH — QUÉT NỘI DUNG VÀ TỰ ĐỘNG CHUẨN HÓA CỘT 100% */
+        function parseExcelDate(val, fallbackDate) {
+            if (!val) return fallbackDate;
+            let str = String(val).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+                let [d, m, y] = str.split('/');
+                return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            }
+            if (!isNaN(str) && Number(str) > 30000) {
+                let dateObj = XLSX.SSF.parse_date_code(Number(str));
+                if (dateObj) return `${dateObj.y}-${String(dateObj.m).padStart(2,'0')}-${String(dateObj.d).padStart(2,'0')}`;
+            }
+            return fallbackDate;
+        }
+
+        /* HÀM NẠP EXCEL THÔNG MINH — XỬ LÝ CHUẨN NẠP DỮ LIỆU CỘT VÀ NGÀY */
         function handleExcelUpload() {
             const fileInput = document.getElementById('excelFile');
             const statusEl = document.getElementById('excelStatus');
@@ -857,7 +906,7 @@
                         let machine = idxMachine !== -1 ? cellValues[idxMachine] : '';
                         let doc = idxDoc !== -1 ? cellValues[idxDoc] : '';
                         let status = idxStatus !== -1 ? cellValues[idxStatus] : '';
-                        let dateStr = idxDate !== -1 ? cellValues[idxDate] : currentDateVal;
+                        let rawDate = idxDate !== -1 ? cellValues[idxDate] : currentDateVal;
 
                         if (headerRowIdx === -1 || idxName === -1) {
                             name = cellValues[0] || cellValues[1] || '';
@@ -866,6 +915,8 @@
 
                         if (name.toLowerCase().includes('họ tên') || name.toLowerCase().includes('bệnh nhân')) continue;
                         if (!name && !hsba) continue;
+
+                        let dateStr = parseExcelDate(rawDate, currentDateVal);
 
                         let rawRecord = {
                             name: name || 'Bệnh nhân',
@@ -883,7 +934,6 @@
 
                         let sanitized = sanitizeTreatmentRecord(rawRecord);
 
-                        if (!dateStr || dateStr === '' || !dateStr.includes('-')) dateStr = currentDateVal;
                         if (!allTreatments[dateStr]) allTreatments[dateStr] = [];
 
                         allTreatments[dateStr].push(sanitized);
@@ -900,108 +950,100 @@
             };
             reader.readAsArrayBuffer(fileInput.files[0]);
         }
-        function getLocalDateStr(d = new Date()) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-        }
 
         function getRealtimeStatus(t, selectedDate) {
-        const now = new Date();
-        const todayStr = getLocalDateStr(now);
+            const now = new Date();
+            const todayStr = getLocalDateStr(now);
 
-        // Nếu chọn ngày trong quá khứ hoặc tương lai
-        if (selectedDate < todayStr) return { status: 'Hoàn thành', colorClass: 'bg-slate-100 text-slate-600' };
-        if (selectedDate > todayStr) return { status: 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
+            if (selectedDate < todayStr) return { status: 'Hoàn thành', colorClass: 'bg-slate-100 text-slate-600' };
+            if (selectedDate > todayStr) return { status: 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
 
-        // Tính phút hiện tại trong ngày
-        const currentMin = now.getHours() * 60 + now.getMinutes();
+            const currentMin = now.getHours() * 60 + now.getMinutes();
 
-        const parseMin = (str) => {
-        if (!str || !str.includes(':')) return -1;
-        const [h, m] = str.split(':').map(Number);
-        return h * 60 + m;
-        };
+            const parseMin = (str) => {
+                if (!str || !str.includes(':')) return -1;
+                const [h, m] = str.split(':').map(Number);
+                return h * 60 + m;
+            };
 
-        const startMin = parseMin(t.startTime);
-        const endMin = parseMin(t.endTime);
+            const startMin = parseMin(t.startTime);
+            const endMin = parseMin(t.endTime);
 
-        if (startMin === -1 || endMin === -1) {
-        return { status: t.status || 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
+            if (startMin === -1 || endMin === -1) {
+                return { status: t.status || 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
+            }
+
+            if (currentMin < startMin) {
+                return { status: 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
+            } else if (currentMin >= startMin && currentMin <= endMin) {
+                return { status: 'Đang thực hiện', colorClass: 'bg-emerald-100 text-emerald-800 font-extrabold animate-pulse' };
+            } else {
+                return { status: 'Hoàn thành', colorClass: 'bg-slate-100 text-slate-600' };
+            }
         }
-
-        if (currentMin < startMin) {
-            return { status: 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
-        } else if (currentMin >= startMin && currentMin <= endMin) {
-            return { status: 'Đang thực hiện', colorClass: 'bg-emerald-100 text-emerald-800 font-extrabold animate-pulse' };
-        } else {
-            return { status: 'Hoàn thành', colorClass: 'bg-slate-100 text-slate-600' };
-        }
-    }
-    
+        
         function renderTable() {
-    const selectedDate = document.getElementById('currentDate').value;
-    if (!allTreatments[selectedDate] || allTreatments[selectedDate].length === 0) fetchDataFromCloud(selectedDate);
-    
-    sanitizeAllData();
-    treatments = allTreatments[selectedDate] || [];
+            const selectedDate = document.getElementById('currentDate').value;
+            if (!allTreatments[selectedDate] && !fetchedDates[selectedDate]) fetchDataFromCloud(selectedDate);
+            
+            sanitizeAllData();
+            treatments = allTreatments[selectedDate] || [];
 
-    // TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI THEO GIỜ THỰC
-    treatments.forEach(t => {
-        const rt = getRealtimeStatus(t, selectedDate);
-        t.status = rt.status;
-        t.statusColor = rt.colorClass;
-    });
+            treatments.forEach(t => {
+                const rt = getRealtimeStatus(t, selectedDate);
+                t.status = rt.status;
+                t.statusColor = rt.colorClass;
+            });
 
-    const tbody = document.getElementById('scheduleTableBody');
-    const filterTypeVal = document.getElementById('filterType') ? document.getElementById('filterType').value : 'all';
-    const searchVal = document.getElementById('tableSearchFilter') ? document.getElementById('tableSearchFilter').value.trim().toLowerCase() : '';
+            const tbody = document.getElementById('scheduleTableBody');
+            const filterTypeVal = document.getElementById('filterType') ? document.getElementById('filterType').value : 'all';
+            const searchVal = document.getElementById('tableSearchFilter') ? document.getElementById('tableSearchFilter').value.trim().toLowerCase() : '';
 
-    let displayTreatments = treatments.filter((t) => {
-        if (filterTypeVal !== 'all' && t.type !== filterTypeVal) return false;
-        if (searchVal !== '') {
-            const rowText = `${t.name} ${t.hsba} ${t.procedure} ${t.performer} ${t.assistant} ${t.machine} ${t.doctor}`.toLowerCase();
-            if (!rowText.includes(searchVal)) return false;
+            let displayTreatments = treatments.filter((t) => {
+                if (filterTypeVal !== 'all' && t.type !== filterTypeVal) return false;
+                if (searchVal !== '') {
+                    const rowText = `${t.name} ${t.hsba} ${t.procedure} ${t.performer} ${t.assistant} ${t.machine} ${t.doctor}`.toLowerCase();
+                    if (!rowText.includes(searchVal)) return false;
+                }
+                return true;
+            });
+
+            document.getElementById('statTotal').textContent = treatments.length;
+            document.getElementById('statInpatient').textContent = treatments.filter(t => t.type === 'Nội trú').length;
+            document.getElementById('statOutpatient').textContent = treatments.filter(t => t.type === 'Ngoại trú').length;
+            document.getElementById('statDoing').textContent = treatments.filter(t => t.status === 'Đang thực hiện').length;
+            
+            const activeMachinesCount = new Set(treatments.map(t => t.machine).filter(m => m && m !== '-')).size;
+            const totalMachinesConfigured = Object.values(resourceConfig.machines || {}).reduce((a, b) => a + b, 0);
+            document.getElementById('statMachines').textContent = `${activeMachinesCount} / ${totalMachinesConfigured}`;
+            
+            document.getElementById('tableRowCount').textContent = `${displayTreatments.length} dòng`;
+
+            if (displayTreatments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Không tìm thấy lịch điều trị phù hợp cho ngày ${selectedDate}.</td></tr>`;
+                return;
+            }
+
+            let htmlBuffer = '';
+            displayTreatments.forEach((t) => {
+                const actualIdx = treatments.indexOf(t);
+                htmlBuffer += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3.5 font-bold text-slate-700 whitespace-nowrap">${t.name}</td>
+                        <td class="p-3.5 text-blue-600 font-bold whitespace-nowrap">${t.hsba}</td>
+                        <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${t.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${t.type}</span></td>
+                        <td class="p-3.5 font-medium text-slate-600 whitespace-nowrap">${t.procedure}</td>
+                        <td class="p-3.5 font-mono font-semibold text-emerald-700 whitespace-nowrap"><input type="text" value="${t.startTime}" onchange="allTreatments['${selectedDate}'][${actualIdx}].startTime=this.value; saveDataToStorage(); renderTable();" class="border rounded px-2 py-1 text-xs w-20 bg-emerald-50"></td>
+                        <td class="p-3.5 font-mono font-semibold text-rose-700 whitespace-nowrap"><input type="text" value="${t.endTime}" onchange="allTreatments['${selectedDate}'][${actualIdx}].endTime=this.value; saveDataToStorage(); renderTable();" class="border rounded px-2 py-1 text-xs w-20 bg-rose-50"></td>
+                        <td class="p-3.5 min-w-[200px]"><input type="text" value="${t.performer}" onchange="allTreatments['${selectedDate}'][${actualIdx}].performer=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-purple-50 font-medium"></td>
+                        <td class="p-3.5 min-w-[150px]"><input type="text" value="${t.assistant}" onchange="allTreatments['${selectedDate}'][${actualIdx}].assistant=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-slate-50 font-medium"></td>
+                        <td class="p-3.5 min-w-[130px]"><input type="text" value="${t.machine}" onchange="allTreatments['${selectedDate}'][${actualIdx}].machine=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-amber-50 font-bold"></td>
+                        <td class="p-3.5 min-w-[160px]"><input type="text" value="${t.doctor}" onchange="allTreatments['${selectedDate}'][${actualIdx}].doctor=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-blue-50 font-medium"></td>
+                        <td class="p-3.5 text-center whitespace-nowrap"><span class="${t.statusColor} text-xs px-2.5 py-1 rounded-full font-bold">${t.status}</span></td>
+                    </tr>`;
+            });
+            tbody.innerHTML = htmlBuffer;
         }
-        return true;
-    });
-
-    // Cập nhật các ô thống kê trên Dashboard
-    document.getElementById('statTotal').textContent = treatments.length;
-    document.getElementById('statInpatient').textContent = treatments.filter(t => t.type === 'Nội trú').length;
-    document.getElementById('statOutpatient').textContent = treatments.filter(t => t.type === 'Ngoại trú').length;
-    document.getElementById('statDoing').textContent = treatments.filter(t => t.status === 'Đang thực hiện').length;
-    
-    const activeMachinesCount = new Set(treatments.map(t => t.machine).filter(m => m && m !== '-')).size;
-    const totalMachinesConfigured = Object.values(resourceConfig.machines || {}).reduce((a, b) => a + b, 0);
-    document.getElementById('statMachines').textContent = `${activeMachinesCount} / ${totalMachinesConfigured}`;
-    
-    document.getElementById('tableRowCount').textContent = `${displayTreatments.length} dòng`;
-
-    if (displayTreatments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Không tìm thấy lịch điều trị phù hợp cho ngày ${selectedDate}.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = '';
-    displayTreatments.forEach((t, idx) => {
-        tbody.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-3.5 font-bold text-slate-700 whitespace-nowrap">${t.name}</td>
-                <td class="p-3.5 text-blue-600 font-bold whitespace-nowrap">${t.hsba}</td>
-                <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${t.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${t.type}</span></td>
-                <td class="p-3.5 font-medium text-slate-600 whitespace-nowrap">${t.procedure}</td>
-                <td class="p-3.5 font-mono font-semibold text-emerald-700 whitespace-nowrap"><input type="text" value="${t.startTime}" onchange="allTreatments['${selectedDate}'][${idx}].startTime=this.value; saveDataToStorage(); renderTable();" class="border rounded px-2 py-1 text-xs w-20 bg-emerald-50"></td>
-                <td class="p-3.5 font-mono font-semibold text-rose-700 whitespace-nowrap"><input type="text" value="${t.endTime}" onchange="allTreatments['${selectedDate}'][${idx}].endTime=this.value; saveDataToStorage(); renderTable();" class="border rounded px-2 py-1 text-xs w-20 bg-rose-50"></td>
-                <td class="p-3.5 min-w-[200px]"><input type="text" value="${t.performer}" onchange="allTreatments['${selectedDate}'][${idx}].performer=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-purple-50 font-medium"></td>
-                <td class="p-3.5 min-w-[150px]"><input type="text" value="${t.assistant}" onchange="allTreatments['${selectedDate}'][${idx}].assistant=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-slate-50 font-medium"></td>
-                <td class="p-3.5 min-w-[130px]"><input type="text" value="${t.machine}" onchange="allTreatments['${selectedDate}'][${idx}].machine=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-amber-50 font-bold"></td>
-                <td class="p-3.5 min-w-[160px]"><input type="text" value="${t.doctor}" onchange="allTreatments['${selectedDate}'][${idx}].doctor=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-blue-50 font-medium"></td>
-                <td class="p-3.5 text-center whitespace-nowrap"><span class="${t.statusColor} text-xs px-2.5 py-1 rounded-full font-bold">${t.status}</span></td>
-            </tr>`;
-    });
-}
 
         initApp();
     </script>
