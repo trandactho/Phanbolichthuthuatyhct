@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.5 - Auto Sanitized)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.5 - Optimized)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -12,9 +12,12 @@
             -webkit-backdrop-filter: blur(8px);
             backdrop-filter: blur(8px);
         }
+        /* Custom scrollbar mượt cho di động */
+        ::-webkit-scrollbar { height: 6px; width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans pb-10">
 
     <!-- Top Header -->
     <header class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-3.5 shadow-lg sticky top-0 z-40">
@@ -26,7 +29,7 @@
                     <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <div class="flex items-center gap-2 bg-blue-800/85 backdrop-blur px-3 py-1.5 rounded-xl border border-blue-700/50 text-sm shadow-sm">
                     <span class="font-medium text-blue-100 text-xs">📅 Ngày:</span>
                     <input type="date" id="currentDate" onchange="renderTable()" class="bg-blue-700 text-white rounded-lg px-2 py-1 outline-none font-bold text-xs shadow-inner cursor-pointer">
@@ -39,69 +42,69 @@
     </header>
 
     <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <main class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
         <!-- Dashboard Metrics Bar -->
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
-                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">TỔNG LƯỢT</p><h3 id="statTotal" class="text-2xl font-black text-slate-700 mt-1">0</h3></div>
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold">📊</div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3">
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div><p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">TỔNG LƯỢT</p><h3 id="statTotal" class="text-xl sm:text-2xl font-black text-slate-700 mt-0.5">0</h3></div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold">📊</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
-                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">NỘI TRÚ</p><h3 id="statInpatient" class="text-2xl font-black text-blue-600 mt-1">0</h3></div>
-                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold">🛏️</div>
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div><p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">NỘI TRÚ</p><h3 id="statInpatient" class="text-xl sm:text-2xl font-black text-blue-600 mt-0.5">0</h3></div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold">🛏️</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
-                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">NGOẠI TRÚ</p><h3 id="statOutpatient" class="text-2xl font-black text-indigo-600 mt-1">0</h3></div>
-                <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold">🚶</div>
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div><p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">NGOẠI TRÚ</p><h3 id="statOutpatient" class="text-xl sm:text-2xl font-black text-indigo-600 mt-0.5">0</h3></div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold">🚶</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
-                <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ĐANG THỰC HIỆN</p><h3 id="statDoing" class="text-2xl font-black text-amber-600 mt-1">0</h3></div>
-                <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 font-bold">⚡</div>
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div><p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">ĐANG THỰC HIỆN</p><h3 id="statDoing" class="text-xl sm:text-2xl font-black text-amber-600 mt-0.5">0</h3></div>
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 font-bold">⚡</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
+            <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center border-l-4 border-l-purple-500 col-span-2 sm:col-span-1">
                 <div>
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">MÁY VẬN HÀNH</p>
-                    <h3 id="statMachines" class="text-2xl font-black text-purple-600 mt-1">0 / 27</h3>
+                    <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">MÁY VẬN HÀNH</p>
+                    <h3 id="statMachines" class="text-xl sm:text-2xl font-black text-purple-600 mt-0.5">0 / 27</h3>
                 </div>
             </div>
         </div>
 
         <!-- Action Toolbar Buttons -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex justify-between items-center mb-3">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Ca Sáng: 07:02 - 12:30 | Ca Chiều: 13:00 - 19:00)</p>
-                <span id="onlineTimeStatus" class="text-[11px] font-medium text-emerald-600 flex items-center gap-1">🌐 Đang đồng bộ giờ online...</span>
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-1">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Ca Sáng: 07:02 - 12:30 | Ca Chiều: 13:00 - 19:00)</p>
+                <span id="onlineTimeStatus" class="text-[11px] font-medium text-emerald-600 flex items-center gap-1">🌐 Đang đồng bộ giờ...</span>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
-                    <span class="text-base">➕</span> Thêm Bệnh Nhân
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-2.5">
+                <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold p-2.5 sm:p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">➕</span> Thêm BN
                 </button>
-                <button onclick="openWaitingListModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                <button onclick="openWaitingListModal()" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold p-2.5 sm:p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
                     <span class="text-base">📋</span> 
                     <span class="whitespace-nowrap">DS Chờ (<span id="waitingCountBadge">0</span>)</span>
                 </button>
-                <button onclick="openModal('modalExcel')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                <button onclick="openModal('modalExcel')" class="bg-teal-600 hover:bg-teal-700 active:scale-95 text-white text-xs font-bold p-2.5 sm:p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
                     <span class="text-base">📥</span> Nhập Excel
                 </button>
-                <button onclick="openModal('modalConfigResources')" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                <button onclick="openModal('modalConfigResources')" class="bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs font-bold p-2.5 sm:p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
                     <span class="text-base">⚙</span> Cấu Hình
                 </button>
-                <button onclick="autoAllocateDaily()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
-                    <span class="text-base">⚡</span> Tự Động Phân Bổ
+                <button onclick="autoAllocateDaily()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold p-2.5 sm:p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">⚡</span> Tự Phân Bổ
                 </button>
-                <button onclick="manualSyncToGoogleSheet()" class="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
-                    <span class="text-base">☁️</span> Lưu Google Sheet
+                <button onclick="manualSyncToGoogleSheet()" class="bg-cyan-600 hover:bg-cyan-700 active:scale-95 text-white text-xs font-bold p-2.5 sm:p-3 rounded-xl shadow-sm transition flex flex-col items-center justify-center gap-1 text-center">
+                    <span class="text-base">☁️</span> Lưu Sheet
                 </button>
             </div>
         </div>
 
         <!-- Filters & Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
-                <div class="flex items-center gap-3">
-                    <h2 class="font-bold text-slate-700 text-base">📋 Lịch Điều Trị Kỹ Thuật</h2>
-                    <span id="tableRowCount" class="text-xs font-semibold text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">0 dòng</span>
+            <div class="p-3.5 sm:p-4 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="flex items-center justify-between w-full sm:w-auto gap-3">
+                    <h2 class="font-bold text-slate-700 text-sm sm:text-base">📋 Lịch Điều Trị Kỹ Thuật</h2>
+                    <span id="tableRowCount" class="text-xs font-semibold text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full whitespace-nowrap">0 dòng</span>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
                     <select id="filterType" onchange="renderTable()" class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white font-medium outline-none shadow-sm">
@@ -109,28 +112,29 @@
                         <option value="Nội trú">Chỉ Nội trú</option>
                         <option value="Ngoại trú">Chỉ Ngoại trú</option>
                     </select>
-                    <input type="text" id="tableSearchFilter" onkeyup="renderTable()" placeholder="Lọc nhanh trên bảng..." class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white outline-none shadow-sm w-full sm:w-64">
+                    <input type="text" id="tableSearchFilter" onkeyup="renderTable()" placeholder="Lọc tên, HSBA..." class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white outline-none shadow-sm w-full sm:w-64">
                 </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-xs sm:text-sm text-left">
                     <thead class="bg-slate-100/70 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
                         <tr>
-                            <th class="p-3.5 whitespace-nowrap">Họ Tên</th>
-                            <th class="p-3.5 whitespace-nowrap">Mã HSBA</th>
-                            <th class="p-3.5 whitespace-nowrap">Đối Tượng</th>
-                            <th class="p-3.5 whitespace-nowrap">Dịch Vụ Kỹ Thuật</th>
-                            <th class="p-3.5 whitespace-nowrap">Bắt Đầu</th>
-                            <th class="p-3.5 whitespace-nowrap">Kết Thúc</th>
-                            <th class="p-3.5 whitespace-nowrap min-w-[200px]">Người Thực Hiện</th>
-                            <th class="p-3.5 whitespace-nowrap min-w-[150px]">Người Phụ</th>
-                            <th class="p-3.5 whitespace-nowrap min-w-[130px]">Mã Máy</th>
-                            <th class="p-3.5 whitespace-nowrap min-w-[160px]">BS Chỉ Định</th>
-                            <th class="p-3.5 whitespace-nowrap text-center">Trạng Thái</th>
+                            <th class="p-3 whitespace-nowrap">Họ Tên</th>
+                            <th class="p-3 whitespace-nowrap">Mã HSBA</th>
+                            <th class="p-3 whitespace-nowrap">Đối Tượng</th>
+                            <th class="p-3 whitespace-nowrap">Dịch Vụ Kỹ Thuật</th>
+                            <th class="p-3 whitespace-nowrap">Bắt Đầu</th>
+                            <th class="p-3 whitespace-nowrap">Kết Thúc</th>
+                            <th class="p-3 whitespace-nowrap min-w-[180px]">Người Thực Hiện</th>
+                            <th class="p-3 whitespace-nowrap min-w-[140px]">Người Phụ</th>
+                            <th class="p-3 whitespace-nowrap min-w-[120px]">Mã Máy</th>
+                            <th class="p-3 whitespace-nowrap min-w-[150px]">BS Chỉ Định</th>
+                            <th class="p-3 whitespace-nowrap text-center">Trạng Thái</th>
+                            <th class="p-3 whitespace-nowrap text-center">Xóa</th>
                         </tr>
                     </thead>
                     <tbody id="scheduleTableBody" class="divide-y divide-slate-100">
-                        <tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Chưa có lịch phân bổ. Hãy bấm "Tự Động Phân Bổ" hoặc "Nhập Excel".</td></tr>
+                        <tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Chưa có lịch phân bổ. Hãy bấm "Tự Động Phân Bổ" hoặc "Nhập Excel".</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -138,134 +142,136 @@
     </main>
 
     <!-- ================= MODAL: DANH SÁCH CHỜ ================= -->
-    <div id="modalWaitingList" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="bg-blue-800 text-white p-4.5 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2"><span>📋</span> Quản Lý Danh Sách Chờ Điều Trị</h3>
-                <button onclick="closeModal('modalWaitingList')" class="text-white font-bold text-lg">✕</button>
+    <div id="modalWaitingList" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 z-50">
+        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-blue-800 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2"><span>📋</span> Quản Lý Danh Sách Chờ Điều Trị</h3>
+                <button onclick="closeModal('modalWaitingList')" class="text-white font-bold text-lg p-1">✕</button>
             </div>
-            <div class="p-6 space-y-4 overflow-y-auto max-h-[70vh] text-sm">
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto text-sm">
                 <div class="overflow-x-auto border border-slate-200 rounded-2xl">
                     <table class="min-w-full divide-y divide-slate-200 text-xs text-left">
                         <thead class="bg-slate-100 text-slate-600 font-bold uppercase">
-                            <tr><th class="p-3">STT</th><th class="p-3">Họ Tên</th><th class="p-3">Mã HSBA</th><th class="p-3">Đối Tượng</th><th class="p-3">Kỹ Thuật</th><th class="p-3 text-center">Ngày Điều Trị</th><th class="p-3">Thao Tác</th></tr>
+                            <tr><th class="p-3">STT</th><th class="p-3">Họ Tên</th><th class="p-3">Mã HSBA</th><th class="p-3">Đối Tượng</th><th class="p-3">Kỹ Thuật</th><th class="p-3 text-center">Ngày Điều Trị</th><th class="p-3 text-center">Thao Tác</th></tr>
                         </thead>
                         <tbody id="waitingListTableBody" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
-            <div class="bg-slate-50 p-4 border-t flex justify-end">
+            <div class="bg-slate-50 p-4 border-t flex justify-end shrink-0">
                 <button onclick="closeModal('modalWaitingList')" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold">Đóng</button>
             </div>
         </div>
     </div>
 
     <!-- ================= MODAL: THÊM BỆNH NHÂN ================= -->
-    <div id="modalAddPatient" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="bg-emerald-800 text-white p-4.5 flex justify-between items-center">
-                <h3 id="modalPatientTitle" class="font-bold text-base">Thêm Bệnh Nhân Vào Danh Sách Chờ</h3>
-                <button onclick="closeModal('modalAddPatient')" class="text-white font-bold text-lg">✕</button>
+    <div id="modalAddPatient" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 z-50">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-emerald-800 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 id="modalPatientTitle" class="font-bold text-sm sm:text-base">Thêm Bệnh Nhân Vào Danh Sách Chờ</h3>
+                <button onclick="closeModal('modalAddPatient')" class="text-white font-bold text-lg p-1">✕</button>
             </div>
-            <div class="p-6 space-y-4 overflow-y-auto max-h-[75vh] text-sm">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="block text-xs font-bold text-slate-600 mb-1.5">Họ tên bệnh nhân *</label><input type="text" id="pName" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-slate-600 mb-1.5">Mã HSBA *</label><input type="text" id="pHsba" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm"></div>
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Họ tên bệnh nhân *</label><input type="text" id="pName" placeholder="VD: Nguyễn Văn A" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm outline-none focus:border-emerald-500"></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Mã HSBA *</label><input type="text" id="pHsba" placeholder="VD: 2400123" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm outline-none focus:border-emerald-500"></div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Đối tượng *</label>
-                        <select id="pType" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm"><option value="Ngoại trú">Ngoại trú</option><option value="Nội trú">Nội trú</option></select>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Đối tượng *</label>
+                        <select id="pType" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm outline-none"><option value="Ngoại trú">Ngoại trú</option><option value="Nội trú">Nội trú</option></select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Ca thực hiện mong muốn</label>
-                        <select id="pShiftChoice" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold text-indigo-700">
-                            <option value="auto">⚡ Tự động phân bổ (Nếu > 12:30 tự sang chiều)</option>
-                            <option value="sang">🌅 Ca Sáng (07:02 - 12:30)</option>
-                            <option value="chieu">🌇 Ca Chiều (13:00 - 19:00)</option>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Bác sĩ chỉ định *</label>
+                        <select id="pDoctor" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-medium outline-none">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Ca mong muốn</label>
+                        <select id="pShiftChoice" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold text-indigo-700 outline-none">
+                            <option value="auto">⚡ Tự động</option>
+                            <option value="sang">🌅 Ca Sáng</option>
+                            <option value="chieu">🌇 Ca Chiều</option>
                         </select>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Chọn ngày điều trị cụ thể *</label>
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Chọn ngày điều trị *</label>
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
                         <div class="flex justify-between items-center">
                             <button type="button" onclick="changeCalendarMonth(-1)" class="p-1.5 bg-white border rounded-xl text-xs font-bold">◀ Tháng trước</button>
-                            <span id="calendarMonthTitle" class="font-bold text-sm text-slate-700"></span>
+                            <span id="calendarMonthTitle" class="font-bold text-xs sm:text-sm text-slate-700"></span>
                             <button type="button" onclick="changeCalendarMonth(1)" class="p-1.5 bg-white border rounded-xl text-xs font-bold">Tháng sau ▶</button>
                         </div>
-                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-[11px] text-slate-400"><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div></div>
+                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-[10px] sm:text-[11px] text-slate-400"><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div></div>
                         <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1"></div>
-                        <div id="selectedDatesChips" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-white rounded-xl border"></div>
+                        <div id="selectedDatesChips" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1 bg-white rounded-xl border"></div>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-2">Chọn các kỹ thuật điều trị:</label>
-                    <div id="procedureCheckboxContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3.5 rounded-2xl border"></div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2">Chọn kỹ thuật điều trị *:</label>
+                    <div id="procedureCheckboxContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl border"></div>
                 </div>
             </div>
-            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
-                <button onclick="closeModal('modalAddPatient')" class="px-5 py-2.5 border rounded-xl text-sm font-semibold">Hủy</button>
-                <button onclick="savePatientForm()" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold">Lưu Vào Danh Sách Chờ</button>
+            <div class="bg-slate-50 p-4 border-t flex justify-end gap-3 shrink-0">
+                <button onclick="closeModal('modalAddPatient')" class="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold">Hủy</button>
+                <button onclick="savePatientForm()" class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md">Lưu Vào DS Chờ</button>
             </div>
         </div>
     </div>
 
     <!-- ================= MODAL: CẤU HÌNH NHÂN SỰ & MÁY MÓC ================= -->
-    <div id="modalConfigResources" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="bg-purple-900 text-white p-4.5 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2"><span>⚙️</span> Cấu Hình Nhân Sự, Chuyên Môn & Thiết Bị</h3>
-                <button onclick="closeModal('modalConfigResources')" class="text-white font-bold text-lg">✕</button>
+    <div id="modalConfigResources" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 z-50">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-purple-900 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2"><span>⚙️</span> Cấu Hình Nhân Sự & Thiết Bị</h3>
+                <button onclick="closeModal('modalConfigResources')" class="text-white font-bold text-lg p-1">✕</button>
             </div>
-            <div class="p-6 space-y-6 overflow-y-auto max-h-[75vh] text-sm">
-                <!-- Phần 1: Cấu hình nhân sự -->
+            <div class="p-4 sm:p-6 space-y-5 overflow-y-auto text-sm">
                 <div>
                     <div class="flex justify-between items-center mb-2">
-                        <label class="font-bold text-slate-700">1. Cấu hình Nhân sự & Nhóm kỹ thuật chuyên môn phụ trách:</label>
-                        <button type="button" onclick="addStaffRowConfig()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">➕ Thêm nhân sự</button>
+                        <label class="font-bold text-slate-700 text-xs sm:text-sm">1. Nhân sự & Chuyên môn phụ trách:</label>
+                        <button type="button" onclick="addStaffRowConfig()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-xl text-xs font-bold">➕ Thêm nhân sự</button>
                     </div>
-                    <div id="staffConfigList" class="space-y-3"></div>
+                    <div id="staffConfigList" class="space-y-2.5"></div>
                 </div>
 
-                <!-- Phần 2: Cấu hình số lượng máy -->
                 <div>
-                    <label class="block font-bold text-slate-700 mb-2">2. Cấu hình số lượng máy / thiết bị hoạt động đồng thời:</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5" id="machineConfigInputs"></div>
+                    <label class="block font-bold text-slate-700 text-xs sm:text-sm mb-2">2. Số lượng thiết bị hoạt động đồng thời:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="machineConfigInputs"></div>
                 </div>
 
-                <!-- Phần 3: Xóa cache -->
-                <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
-                    <span class="text-xs text-slate-500">Xóa sạch cache trình duyệt nếu ứng dụng gặp lỗi:</span>
-                    <button type="button" onclick="resetAppStorage()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs">🧹 Xóa bộ nhớ đệm</button>
+                <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <span class="text-xs text-slate-500">Xóa bộ nhớ đệm ứng dụng:</span>
+                    <button type="button" onclick="resetAppStorage()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-1.5 rounded-xl font-bold text-xs">🧹 Xóa Cache</button>
                 </div>
             </div>
-            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
-                <button onclick="closeModal('modalConfigResources')" class="px-5 py-2.5 border rounded-xl text-sm font-semibold">Đóng</button>
-                <button onclick="saveResourcesConfig()" class="px-5 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold shadow-md">Lưu Cấu Hình</button>
+            <div class="bg-slate-50 p-4 border-t flex justify-end gap-3 shrink-0">
+                <button onclick="closeModal('modalConfigResources')" class="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold">Đóng</button>
+                <button onclick="saveResourcesConfig()" class="px-5 py-2 bg-purple-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md">Lưu Cấu Hình</button>
             </div>
         </div>
     </div>
 
     <!-- ================= MODAL: NHẬP EXCEL ================= -->
-    <div id="modalExcel" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div id="modalExcel" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 z-50">
         <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="bg-teal-800 text-white p-4.5 flex justify-between items-center">
-                <h3 class="font-bold text-base flex items-center gap-2"><span>📥</span> Nhập Dữ Liệu Từ File Excel</h3>
-                <button onclick="closeModal('modalExcel')" class="text-white font-bold text-lg">✕</button>
+            <div class="bg-teal-800 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2"><span>📥</span> Nhập Dữ Liệu Từ File Excel</h3>
+                <button onclick="closeModal('modalExcel')" class="text-white font-bold text-lg p-1">✕</button>
             </div>
-            <div class="p-6 space-y-4 text-sm">
-                <input type="file" id="excelFile" accept=".xlsx, .xls" class="w-full border-2 border-dashed border-slate-300 rounded-2xl p-4 text-sm bg-slate-50 cursor-pointer">
+            <div class="p-4 sm:p-6 space-y-4 text-sm">
+                <input type="file" id="excelFile" accept=".xlsx, .xls" class="w-full border-2 border-dashed border-slate-300 rounded-2xl p-4 text-xs sm:text-sm bg-slate-50 cursor-pointer">
                 <span id="excelStatus" class="text-xs font-bold text-emerald-600 block"></span>
             </div>
-            <div class="bg-slate-50 p-4.5 border-t flex justify-end gap-3">
-                <button onclick="closeModal('modalExcel')" class="px-5 py-2.5 border rounded-xl text-sm font-semibold">Đóng</button>
-                <button onclick="handleExcelUpload()" class="px-5 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold">Xác Nhận Nạp</button>
+            <div class="bg-slate-50 p-4 border-t flex justify-end gap-3 shrink-0">
+                <button onclick="closeModal('modalExcel')" class="px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold">Đóng</button>
+                <button onclick="handleExcelUpload()" class="px-5 py-2 bg-teal-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md">Xác Nhận Nạp</button>
             </div>
         </div>
     </div>
 
-            <!-- JAVASCRIPT LOGIC (ĐÃ TỐI ƯU & BỔ SUNG THUẬT TOÁN) -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
         let availableProcedures = [
             { name: 'Kéo cột sống (15p)', category: 'Kéo cột sống', duration: 15 },
@@ -345,7 +351,7 @@
             const isDoctor = (val) => {
                 if (!val || val === '-') return false;
                 const v = val.toLowerCase();
-                return v.startsWith('bs') || v.startsWith('bác sĩ') || v.startsWith('dr') || v.includes('đoan trang') || v.includes('đại') || v.includes('nam') || v.includes('trang');
+                return v.startsWith('bs') || v.startsWith('bác sĩ') || v.startsWith('dr') || v.includes('đoan trang') || v.includes('nam') || v.includes('trang');
             };
 
             const isStatus = (val) => {
@@ -425,7 +431,7 @@
                 
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = `p-2 rounded-xl text-xs font-bold transition flex items-center justify-center ${isSelected ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400' : 'bg-white hover:bg-slate-100 text-slate-700 border'}`;
+                btn.className = `p-1.5 sm:p-2 rounded-xl text-xs font-bold transition flex items-center justify-center ${isSelected ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400' : 'bg-white hover:bg-slate-100 text-slate-700 border'}`;
                 btn.textContent = day;
                 btn.onclick = () => {
                     const idx = selectedPatientDates.indexOf(dateStr);
@@ -438,7 +444,7 @@
             chipsEl.innerHTML = '';
             selectedPatientDates.sort().forEach(dateStr => {
                 const chip = document.createElement('span');
-                chip.className = 'inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold';
+                chip.className = 'inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-lg text-xs font-bold';
                 chip.innerHTML = `<span>📅 ${dateStr}</span> <button type="button" onclick="selectedPatientDates = selectedPatientDates.filter(d => d !== '${dateStr}'); renderCalendarGrid();" class="hover:text-rose-600 font-bold ml-1">✕</button>`;
                 chipsEl.appendChild(chip);
             });
@@ -482,12 +488,12 @@
                 if (data && data.datetime) {
                     onlineNow = new Date(data.datetime);
                     document.getElementById('currentDate').value = data.datetime.substring(0, 10);
-                    if (statusEl) statusEl.textContent = '🌐 Đã đồng bộ giờ server online';
+                    if (statusEl) statusEl.textContent = '🌐 Đã đồng bộ giờ server';
                 }
             } catch (e) {
                 onlineNow = new Date();
                 document.getElementById('currentDate').value = getLocalDateStr(onlineNow);
-                if (statusEl) statusEl.textContent = '⚠️ Dùng giờ thiết bị (Chế độ ngoại tuyến)';
+                if (statusEl) statusEl.textContent = '⚠️ Ngoại tuyến (Giờ thiết bị)';
             }
             renderTable();
         }
@@ -503,8 +509,8 @@
 
         function updateUnlockButtonUI() {
             const btn = document.getElementById('btnUnlockAdmin');
-            if (isAdminUnlocked) { btn.className = "bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold"; btn.innerHTML = "<span>🔓</span> Đã Mở Khóa"; }
-            else { btn.className = "bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold"; btn.innerHTML = "<span>🔒</span> Khóa"; }
+            if (isAdminUnlocked) { btn.className = "bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm"; btn.innerHTML = "<span>🔓</span> Đã Mở Khóa"; }
+            else { btn.className = "bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold shadow-sm"; btn.innerHTML = "<span>🔒</span> Khóa"; }
         }
 
         function verifyAdminPermission() {
@@ -546,6 +552,7 @@
 
         function openAddModal() { 
             if (!verifyAdminPermission()) return; 
+            populateDoctorDropdown();
             initCalendarPicker([]); 
             openModal('modalAddPatient'); 
         }
@@ -563,7 +570,7 @@
                             <button type="button" onclick="this.parentElement.parentElement.remove()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-xl font-bold text-xs shrink-0">✕ Xóa</button>
                         </div>
                         <div>
-                            <input type="text" value="${st.specs || ''}" placeholder="Chuyên môn (VD: Điện châm, Cấy chỉ...)" class="staff-spec-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-medium bg-slate-50">
+                            <input type="text" value="${st.specs || ''}" placeholder="Chuyên môn" class="staff-spec-inp w-full border border-slate-300 rounded-xl p-2 text-xs font-medium bg-slate-50">
                         </div>
                     `;
                     staffContainer.appendChild(row);
@@ -576,10 +583,10 @@
                 Object.keys(resourceConfig.machines || {}).forEach(mName => {
                     const val = resourceConfig.machines[mName];
                     const div = document.createElement('div');
-                    div.className = 'bg-slate-50 p-3 rounded-2xl border border-slate-200';
+                    div.className = 'bg-slate-50 p-2.5 rounded-2xl border border-slate-200';
                     div.innerHTML = `
-                        <span class="block text-xs font-semibold text-slate-500">${mName}</span>
-                        <input type="number" data-machine="${mName}" value="${val}" class="machine-input w-full font-bold border border-slate-300 rounded-xl p-1.5 mt-1 text-center bg-white">
+                        <span class="block text-[11px] font-semibold text-slate-500 truncate">${mName}</span>
+                        <input type="number" data-machine="${mName}" value="${val}" class="machine-input w-full font-bold border border-slate-300 rounded-xl p-1 mt-1 text-center bg-white text-xs">
                     `;
                     container.appendChild(div);
                 });
@@ -620,7 +627,8 @@
             });
 
             saveDataToStorage();
-            alert('Đã lưu cấu hình nhân sự & thiết bị thành công!');
+            populateDoctorDropdown();
+            alert('Đã lưu cấu hình nhân sự & thiết bị!');
             closeModal('modalConfigResources');
             renderTable();
         }
@@ -629,24 +637,65 @@
             const tbody = document.getElementById('waitingListTableBody');
             tbody.innerHTML = patientsWaiting.length === 0 ? `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">Danh sách chờ trống.</td></tr>` : '';
             patientsWaiting.forEach((p, idx) => {
-                tbody.innerHTML += `<tr><td class="p-3 font-bold">#${idx+1}</td><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-blue-600">${p.hsba}</td><td class="p-3">${p.type}</td><td class="p-3">${p.procedures.join(', ')}</td><td class="p-3 text-center">${p.dates.join(', ')}</td><td class="p-3 text-center"><button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="bg-rose-600 text-white px-2 py-1 rounded text-xs font-bold">Xóa</button></td></tr>`;
+                tbody.innerHTML += `<tr><td class="p-2.5 font-bold">#${idx+1}</td><td class="p-2.5 font-bold">${p.name}</td><td class="p-2.5 text-blue-600 font-bold">${p.hsba}</td><td class="p-2.5">${p.type}</td><td class="p-2.5">${p.procedures.join(', ')}</td><td class="p-2.5 text-center">${p.dates.join(', ')}</td><td class="p-2.5 text-center"><button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="bg-rose-600 text-white px-2 py-1 rounded text-xs font-bold">Xóa</button></td></tr>`;
             });
             updateWaitingBadge();
             openModal('modalWaitingList');
+        }
+        
+        function populateDoctorDropdown() {
+            const doctorSelect = document.getElementById('pDoctor');
+            if (!doctorSelect) return;
+
+            doctorSelect.innerHTML = '';
+            const staffList = resourceConfig.staff || [];
+            
+            const doctors = staffList.filter(s => {
+                const nameLower = (s.name || '').toLowerCase();
+                return nameLower.startsWith('bs') || nameLower.includes('bác sĩ') || nameLower.includes('dr');
+            });
+
+            if (doctors.length === 0) {
+                staffList.forEach(st => {
+                    const opt = document.createElement('option');
+                    opt.value = st.name; opt.textContent = st.name;
+                    doctorSelect.appendChild(opt);
+                });
+                if (doctorSelect.options.length === 0) {
+                    doctorSelect.innerHTML = '<option value="BS Đoan Trang">BS Đoan Trang</option>';
+                }
+                return;
+            }
+
+            doctors.forEach(doc => {
+                const opt = document.createElement('option');
+                opt.value = doc.name;
+                opt.textContent = doc.name;
+                doctorSelect.appendChild(opt);
+            });
         }
 
         function savePatientForm() {
             const name = document.getElementById('pName').value.trim();
             const hsba = document.getElementById('pHsba').value.trim();
             const type = document.getElementById('pType').value;
+            const doctor = document.getElementById('pDoctor').value;
             const shiftChoice = document.getElementById('pShiftChoice').value;
             const selectedProcs = Array.from(document.querySelectorAll('input[name="patientProc"]:checked')).map(chk => chk.value);
 
-            if (!name || !hsba || selectedPatientDates.length === 0 || selectedProcs.length === 0) { alert('Vui lòng điền đủ thông tin, ngày và thủ thuật!'); return; }
-            patientsWaiting.push({ name, hsba, type, shiftChoice, dates: [...selectedPatientDates], procedures: selectedProcs, doctor: 'BS Đoan Trang' });
+            if (!name || !hsba || selectedPatientDates.length === 0 || selectedProcs.length === 0) { 
+                alert('Vui lòng điền đủ thông tin, chọn ngày và kỹ thuật!'); 
+                return; 
+            }
+            patientsWaiting.push({ 
+                name, hsba, type, shiftChoice, 
+                dates: [...selectedPatientDates], 
+                procedures: selectedProcs, 
+                doctor: doctor || 'BS Đoan Trang'
+            });
             saveDataToStorage();            
             closeModal('modalAddPatient');
-            alert('Đã lưu bệnh nhân vào danh sách chờ!');
+            alert('Đã thêm bệnh nhân vào danh sách chờ!');
             document.getElementById('pName').value = '';
             document.getElementById('pHsba').value = '';
             selectedPatientDates = [];
@@ -813,7 +862,7 @@
             patientsWaiting = [];
             saveDataToStorage();
             renderTable();
-            alert('⚡ Đã phân bổ tối ưu công suất song song thành công!');
+            alert('⚡ Đã tự động phân bổ thành công!');
         }
 
         const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzD0aae615n83RR4P4lIlysIzsU5OeTpSl7_4ogIJfcKXzUF8SvZl337EaA04o0zXskxg/exec";
@@ -891,9 +940,8 @@
                     if (headerRowIdx !== -1) {
                         const headers = rawRows[headerRowIdx].map(h => String(h).trim().toLowerCase());
 
-                                                headers.forEach((h, colIdx) => {
+                        headers.forEach((h, colIdx) => {
                             if (!h) return;
-                            // SỬA LỖI: Nhận diện chính xác tiêu đề tên và mã bệnh nhân
                             if ((h.includes('họ tên') || h.includes('ho ten') || h === 'tên bn' || h === 'bệnh nhân' || h === 'name') && !h.includes('mã')) {
                                 idxName = colIdx;
                             } else if (h.includes('hsba') || h.includes('mã bn') || h.includes('mã hsba') || h.includes('mã bệnh nhân')) {
@@ -977,7 +1025,7 @@
                     }
 
                     saveDataToStorage();
-                    statusEl.textContent = `✅ Đã nạp & chuẩn hóa thành công ${importedCount} dòng lịch từ Excel!`;
+                    statusEl.textContent = `✅ Đã nạp & chuẩn hóa ${importedCount} dòng lịch từ Excel!`;
                     setTimeout(() => {
                         closeModal('modalExcel');
                         renderTable();
@@ -1018,7 +1066,23 @@
             }
         }
 
-                function renderTable() {
+        function deleteRow(selectedDate, index) {
+            if (!verifyAdminPermission()) return;
+            if (confirm("Xác nhận xóa dòng điều trị này?")) {
+                allTreatments[selectedDate].splice(index, 1);
+                saveDataToStorage();
+                renderTable();
+            }
+        }
+
+        function updateRecordField(selectedDate, index, field, value) {
+            if (allTreatments[selectedDate] && allTreatments[selectedDate][index]) {
+                allTreatments[selectedDate][index][field] = value;
+                saveDataToStorage();
+            }
+        }
+
+        function renderTable() {
             const selectedDate = document.getElementById('currentDate').value;
             if (!allTreatments[selectedDate] && !fetchedDates[selectedDate]) fetchDataFromCloud(selectedDate);
             
@@ -1035,13 +1099,14 @@
             const filterTypeVal = document.getElementById('filterType') ? document.getElementById('filterType').value : 'all';
             const searchVal = document.getElementById('tableSearchFilter') ? document.getElementById('tableSearchFilter').value.trim().toLowerCase() : '';
 
-            let displayTreatments = treatments.filter((t) => {
-                if (filterTypeVal !== 'all' && t.type !== filterTypeVal) return false;
+            let displayItems = [];
+            treatments.forEach((t, origIdx) => {
+                if (filterTypeVal !== 'all' && t.type !== filterTypeVal) return;
                 if (searchVal !== '') {
                     const rowText = `${t.name} ${t.hsba} ${t.procedure} ${t.performer} ${t.assistant} ${t.machine} ${t.doctor}`.toLowerCase();
-                    if (!rowText.includes(searchVal)) return false;
+                    if (!rowText.includes(searchVal)) return;
                 }
-                return true;
+                displayItems.push({ item: t, origIdx });
             });
 
             document.getElementById('statTotal').textContent = treatments.length;
@@ -1053,33 +1118,29 @@
             const totalMachinesConfigured = Object.values(resourceConfig.machines || {}).reduce((a, b) => a + b, 0);
             document.getElementById('statMachines').textContent = `${activeMachinesCount} / ${totalMachinesConfigured}`;
             
-            document.getElementById('tableRowCount').textContent = `${displayTreatments.length} dòng`;
+            document.getElementById('tableRowCount').textContent = `${displayItems.length} dòng`;
 
-            if (displayTreatments.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Không tìm thấy lịch điều trị phù hợp cho ngày ${selectedDate}.</td></tr>`;
+            if (displayItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Không tìm thấy lịch điều trị phù hợp cho ngày ${selectedDate}.</td></tr>`;
                 return;
             }
 
             let htmlBuffer = '';
-            // SỬA LỖI: Tìm chính xác vị trí dòng trong mảng gốc allTreatments[selectedDate]
-            const originalList = allTreatments[selectedDate] || [];
-            displayTreatments.forEach((t) => {
-                const actualIdx = originalList.findIndex(item => item === t);
-                if (actualIdx === -1) return;
-
+            displayItems.forEach(({ item: t, origIdx }) => {
                 htmlBuffer += `
                     <tr class="hover:bg-slate-50 transition">
-                        <td class="p-3.5 font-bold text-slate-700 whitespace-nowrap">${t.name}</td>
-                        <td class="p-3.5 text-blue-600 font-bold whitespace-nowrap">${t.hsba}</td>
-                        <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${t.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${t.type}</span></td>
-                        <td class="p-3.5 font-medium text-slate-600 whitespace-nowrap">${t.procedure}</td>
-                        <td class="p-3.5 font-mono font-semibold text-emerald-700 whitespace-nowrap"><input type="text" value="${t.startTime}" onchange="allTreatments['${selectedDate}'][${actualIdx}].startTime=this.value; saveDataToStorage(); renderTable();" class="border rounded px-2 py-1 text-xs w-20 bg-emerald-50"></td>
-                        <td class="p-3.5 font-mono font-semibold text-rose-700 whitespace-nowrap"><input type="text" value="${t.endTime}" onchange="allTreatments['${selectedDate}'][${actualIdx}].endTime=this.value; saveDataToStorage(); renderTable();" class="border rounded px-2 py-1 text-xs w-20 bg-rose-50"></td>
-                        <td class="p-3.5 min-w-[200px]"><input type="text" value="${t.performer}" onchange="allTreatments['${selectedDate}'][${actualIdx}].performer=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-purple-50 font-medium"></td>
-                        <td class="p-3.5 min-w-[150px]"><input type="text" value="${t.assistant}" onchange="allTreatments['${selectedDate}'][${actualIdx}].assistant=this.value; saveDataToStorage();" class="border rounded px-2.5 py-1.5 text-xs w-full bg-slate-50 font-medium"></td>
-                        <td class="p-3.5 min-w-[130px]"><input type="text" value="${t.machine}" onchange="allTreatments['${selectedDate}'][${actualIdx}].machine=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-amber-50 font-bold"></td>
-                        <td class="p-3.5 min-w-[160px]"><input type="text" value="${t.doctor}" onchange="allTreatments['${selectedDate}'][${actualIdx}].doctor=this.value; saveDataToStorage();" class="border rounded px-2 py-1 text-xs w-full bg-blue-50 font-medium"></td>
-                        <td class="p-3.5 text-center whitespace-nowrap"><span class="${t.statusColor} text-xs px-2.5 py-1 rounded-full font-bold">${t.status}</span></td>
+                        <td class="p-3 font-bold text-slate-700 whitespace-nowrap">${t.name}</td>
+                        <td class="p-3 text-blue-600 font-bold whitespace-nowrap">${t.hsba}</td>
+                        <td class="p-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${t.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${t.type}</span></td>
+                        <td class="p-3 font-medium text-slate-600 whitespace-nowrap">${t.procedure}</td>
+                        <td class="p-3 font-mono font-semibold text-emerald-700 whitespace-nowrap"><input type="text" value="${t.startTime}" onchange="updateRecordField('${selectedDate}', ${origIdx}, 'startTime', this.value)" class="border rounded px-2 py-1 text-xs w-16 bg-emerald-50"></td>
+                        <td class="p-3 font-mono font-semibold text-rose-700 whitespace-nowrap"><input type="text" value="${t.endTime}" onchange="updateRecordField('${selectedDate}', ${origIdx}, 'endTime', this.value)" class="border rounded px-2 py-1 text-xs w-16 bg-rose-50"></td>
+                        <td class="p-3 min-w-[180px]"><input type="text" value="${t.performer}" onchange="updateRecordField('${selectedDate}', ${origIdx}, 'performer', this.value)" class="border rounded px-2 py-1 text-xs w-full bg-purple-50 font-medium"></td>
+                        <td class="p-3 min-w-[140px]"><input type="text" value="${t.assistant}" onchange="updateRecordField('${selectedDate}', ${origIdx}, 'assistant', this.value)" class="border rounded px-2 py-1 text-xs w-full bg-slate-50 font-medium"></td>
+                        <td class="p-3 min-w-[120px]"><input type="text" value="${t.machine}" onchange="updateRecordField('${selectedDate}', ${origIdx}, 'machine', this.value)" class="border rounded px-2 py-1 text-xs w-full bg-amber-50 font-bold"></td>
+                        <td class="p-3 min-w-[150px]"><input type="text" value="${t.doctor}" onchange="updateRecordField('${selectedDate}', ${origIdx}, 'doctor', this.value)" class="border rounded px-2 py-1 text-xs w-full bg-blue-50 font-medium"></td>
+                        <td class="p-3 text-center whitespace-nowrap"><span class="${t.statusColor} text-xs px-2.5 py-1 rounded-full font-bold">${t.status}</span></td>
+                        <td class="p-3 text-center whitespace-nowrap"><button onclick="deleteRow('${selectedDate}', ${origIdx})" class="text-rose-600 hover:text-rose-800 font-bold p-1">✕</button></td>
                     </tr>`;
             });
             tbody.innerHTML = htmlBuffer;
