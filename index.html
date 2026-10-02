@@ -265,7 +265,7 @@
         </div>
     </div>
 
-        <!-- JAVASCRIPT LOGIC (ĐÃ TỐI ƯU & SỬA LỖI) -->
+            <!-- JAVASCRIPT LOGIC (ĐÃ TỐI ƯU & BỔ SUNG THUẬT TOÁN) -->
     <script>
         let availableProcedures = [
             { name: 'Kéo cột sống (15p)', category: 'Kéo cột sống', duration: 15 },
@@ -653,6 +653,36 @@
             document.querySelectorAll('input[name="patientProc"]').forEach(c => c.checked = false);
         }
 
+        function getQualifiedPerformers(catName) {
+            let catLower = catName.toLowerCase();
+            let staffList = resourceConfig.staff || [];
+            let qualified = staffList.filter(s => s.specs && s.specs.toLowerCase().includes(catLower));
+            
+            if (qualified.length > 0) return qualified.map(s => s.name);
+            
+            if (catLower.includes('điện châm') || catLower.includes('cứu ngải') || catLower.includes('xbbh')) {
+                let list = staffList.filter(s => s.name.startsWith('YS') || s.name.startsWith('BS'));
+                if (list.length > 0) return list.map(s => s.name);
+            } else if (catLower.includes('cấy chỉ') || catLower.includes('thủy châm') || catLower.includes('xung kích')) {
+                let list = staffList.filter(s => s.name.startsWith('BS'));
+                if (list.length > 0) return list.map(s => s.name);
+            } else {
+                let list = staffList.filter(s => s.name.startsWith('KTV') || s.name.startsWith('YS'));
+                if (list.length > 0) return list.map(s => s.name);
+            }
+            return [staffList[0] ? staffList[0].name : 'KTV'];
+        }
+
+        function getAssistant(catName) {
+            let catLower = catName.toLowerCase();
+            if (catLower.includes('điện châm')) {
+                let staffList = resourceConfig.staff || [];
+                let bichThao = staffList.find(s => s.name.includes('Bích Thảo'));
+                return bichThao ? bichThao.name : 'YS Nguyễn Thị Bích Thảo';
+            }
+            return '-';
+        }     
+
         function autoAllocateDaily() {
             if (!verifyAdminPermission()) return;
             if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
@@ -668,7 +698,7 @@
             });
 
             Object.keys(mapDateToPatients).forEach(targetDateStr => {
-                let morningStart = 7 * 60 + 2;      // 07:02
+                let morningStart = 7 * 60 + 2;       // 07:02
                 let morningEndLimit = 12 * 60 + 30;  // 12:30
                 let afternoonStart = 13 * 60;        // 13:00
                 let maxEveningLimit = 19 * 60;       // 19:00
@@ -687,47 +717,65 @@
                 mapDateToPatients[targetDateStr].forEach(item => {
                     let p = item.patient;
                     let procName = item.procedure;
-                    let details = getPerformerAndAssistant(procName);
-                    let duration = details.duration;
-                    let cat = details.category;
-                    let performer = details.performer || 'KTV';
+                    let foundProc = availableProcedures.find(proc => proc.name.toLowerCase() === procName.toLowerCase());
+                    let cat = foundProc ? foundProc.category : procName.split('(')[0].trim();
+                    let duration = foundProc ? foundProc.duration : 15;
                     let setupDuration = 5;
 
-                    if (!performerSchedules[performer]) performerSchedules[performer] = [];
+                    let qualifiedPerformers = getQualifiedPerformers(cat);
+                    let assistant = getAssistant(cat);
 
                     let preferredShift = p.shiftChoice || 'auto';
                     let baseTime = preferredShift === 'chieu' ? afternoonStart : morningStart;
 
-                    let bestMachineKey = `${cat}_1`;
-                    let earliestMachineTime = Infinity;
-                    Object.keys(machineFreeTime).forEach(mKey => {
-                        if (mKey.toLowerCase().startsWith(cat.toLowerCase()) && machineFreeTime[mKey] < earliestMachineTime) {
-                            earliestMachineTime = machineFreeTime[mKey];
-                            bestMachineKey = mKey;
-                        }
-                    });
-                    if (machineFreeTime[bestMachineKey] === undefined) machineFreeTime[bestMachineKey] = baseTime;
+                    let availableMachineKeys = Object.keys(machineFreeTime).filter(mKey => 
+                        mKey.toLowerCase().startsWith(cat.toLowerCase() + '_') || mKey.toLowerCase() === cat.toLowerCase()
+                    );
 
-                    let earliestPatientTime = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
-                    let candidateStart = Math.max(baseTime, machineFreeTime[bestMachineKey], earliestPatientTime);
-
-                    if (preferredShift === 'auto' && candidateStart + duration > morningEndLimit && candidateStart < afternoonStart) {
-                        candidateStart = afternoonStart;
+                    if (availableMachineKeys.length === 0) {
+                        let mKey = `${cat}_1`;
+                        machineFreeTime[mKey] = baseTime;
+                        availableMachineKeys = [mKey];
                     }
 
+                    let earliestPatientTime = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
+
                     const isPerformerFree = (perf, startM, setupM) => {
+                        if (!performerSchedules[perf]) performerSchedules[perf] = [];
                         let endM = startM + setupM;
                         return !performerSchedules[perf].some(slot => !(endM <= slot.start || startM >= slot.end));
                     };
 
-                    while (!isPerformerFree(performer, candidateStart, setupDuration)) {
-                        candidateStart += 1;
-                        if (preferredShift === 'auto' && candidateStart + duration > morningEndLimit && candidateStart < afternoonStart) {
+                    let bestStart = Infinity;
+                    let bestMachineKey = availableMachineKeys[0];
+                    let chosenPerformer = qualifiedPerformers[0];
+
+                    availableMachineKeys.forEach(mKey => {
+                        let mFree = machineFreeTime[mKey] !== undefined ? machineFreeTime[mKey] : baseTime;
+                        let candidateStart = Math.max(baseTime, mFree, earliestPatientTime);
+
+                        if (preferredShift === 'auto' && (candidateStart + duration > morningEndLimit) && candidateStart < afternoonStart) {
                             candidateStart = afternoonStart;
                         }
-                    }
 
-                    let startMin = candidateStart;
+                        qualifiedPerformers.forEach(perf => {
+                            let testStart = candidateStart;
+                            while (!isPerformerFree(perf, testStart, setupDuration)) {
+                                testStart += 1;
+                                if (preferredShift === 'auto' && (testStart + duration > morningEndLimit) && testStart < afternoonStart) {
+                                    testStart = afternoonStart;
+                                }
+                            }
+
+                            if (testStart < bestStart) {
+                                bestStart = testStart;
+                                bestMachineKey = mKey;
+                                chosenPerformer = perf;
+                            }
+                        });
+                    });
+
+                    let startMin = bestStart;
                     let endMin = startMin + duration;
 
                     if (endMin > maxEveningLimit) {
@@ -736,19 +784,26 @@
                     }
 
                     machineFreeTime[bestMachineKey] = endMin + 1;
-                    patientFreeTime[p.hsba] = endMin + 1;
-                    performerSchedules[performer].push({ start: startMin, end: startMin + setupDuration });
+                    patientFreeTime[p.hsba] = endMin;
+
+                    if (!performerSchedules[chosenPerformer]) performerSchedules[chosenPerformer] = [];
+                    performerSchedules[chosenPerformer].push({ start: startMin, end: startMin + setupDuration });
 
                     let sH = Math.floor(startMin / 60), sM = startMin % 60;
                     let eH = Math.floor(endMin / 60), eM = endMin % 60;
 
                     dailyTreatments.push(sanitizeTreatmentRecord({
-                        name: p.name, hsba: p.hsba, type: p.type,
+                        name: p.name,
+                        hsba: p.hsba,
+                        type: p.type,
                         procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
                         startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
                         endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
-                        performer: details.performer, assistant: details.assistant || '-',
-                        machine: bestMachineKey.replace('_', ' '), doctor: p.doctor || 'BS Đoan Trang', status: 'Chờ thực hiện'
+                        performer: chosenPerformer,
+                        assistant: assistant,
+                        machine: bestMachineKey.replace('_', ' '),
+                        doctor: p.doctor || 'BS Đoan Trang',
+                        status: 'Chờ thực hiện'
                     }));
                 });
 
@@ -759,38 +814,6 @@
             saveDataToStorage();
             renderTable();
             alert('⚡ Đã phân bổ tối ưu công suất song song thành công!');
-        }
-
-        function getPerformerAndAssistant(procName) {
-            let cat = procName.split('(')[0].trim().toLowerCase();
-            let found = availableProcedures.find(p => p.name.toLowerCase() === procName.toLowerCase());
-            let categoryName = found ? found.category.toLowerCase() : cat;
-            let staffList = resourceConfig.staff;
-
-            let performer = staffList[0].name;
-            let assistant = '-';
-
-            if (categoryName.includes('điện châm') || categoryName.includes('cứu ngải')) {
-                let ysi = staffList.filter(s => s.name.startsWith('YS') || s.name.startsWith('BS'));
-                if (ysi.length > 0) performer = ysi[0].name;
-                let assistantObj = staffList.find(s => s.name.includes('Bích Thảo') || s.name.includes('Quang'));
-                if (assistantObj) assistant = assistantObj.name;
-            } else if (categoryName.includes('cấy chỉ') || categoryName.includes('thủy châm') || categoryName.includes('xung kích')) {
-                let doc = staffList.find(s => s.name.startsWith('BS'));
-                if (doc) performer = doc.name;
-                assistant = '-';
-            } else {
-                let ktv = staffList.find(s => s.name.startsWith('KTV'));
-                if (ktv) performer = ktv.name;
-                assistant = '-';
-            }
-
-            return { 
-                category: found ? found.category : procName.split('(')[0].trim(), 
-                duration: found ? found.duration : 15, 
-                performer, 
-                assistant 
-            };
         }
 
         const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzD0aae615n83RR4P4lIlysIzsU5OeTpSl7_4ogIJfcKXzUF8SvZl337EaA04o0zXskxg/exec";
@@ -835,7 +858,6 @@
             return fallbackDate;
         }
 
-        /* HÀM NẠP EXCEL THÔNG MINH — XỬ LÝ CHUẨN NẠP DỮ LIỆU CỘT VÀ NGÀY */
         function handleExcelUpload() {
             const fileInput = document.getElementById('excelFile');
             const statusEl = document.getElementById('excelStatus');
@@ -869,20 +891,34 @@
                     if (headerRowIdx !== -1) {
                         const headers = rawRows[headerRowIdx].map(h => String(h).trim().toLowerCase());
 
-                        headers.forEach((h, colIdx) => {
+                                                headers.forEach((h, colIdx) => {
                             if (!h) return;
-                            if (h.includes('họ tên') || h.includes('ho ten') || h.includes('tên bn') || h.includes('bệnh nhân') || h === 'name') idxName = colIdx;
-                            else if (h.includes('hsba') || h.includes('mã bn') || h.includes('mã hsba')) idxHsba = colIdx;
-                            else if (h.includes('đối tượng') || h.includes('doi tuong') || h === 'loại') idxType = colIdx;
-                            else if (h.includes('dịch vụ') || h.includes('kỹ thuật') || h.includes('thủ thuật') || h.includes('procedure')) idxProc = colIdx;
-                            else if (h.includes('bắt đầu') || h.includes('bat dau') || h.includes('gio bd')) idxStart = colIdx;
-                            else if (h.includes('kết thúc') || h.includes('ket thuc') || h.includes('gio kt')) idxEnd = colIdx;
-                            else if (h.includes('người thực hiện') || h.includes('nguoi thuc hien') || h === 'ktv' || h.includes('người làm')) idxPerf = colIdx;
-                            else if (h.includes('người phụ') || h.includes('nguoi phu') || h === 'phụ' || h.includes('phụ châm')) idxAssist = colIdx;
-                            else if (h.includes('mã máy') || h.includes('ma may') || h === 'máy' || h.includes('thiết bị')) idxMachine = colIdx;
-                            else if (h.includes('bs chỉ định') || h.includes('bs chi dinh') || h.includes('bác sĩ chỉ định') || h.includes('bs phụ trách')) idxDoc = colIdx;
-                            else if (h.includes('trạng thái') || h.includes('trang thai')) idxStatus = colIdx;
-                            else if (h.includes('ngày') || h.includes('ngay')) idxDate = colIdx;
+                            // SỬA LỖI: Nhận diện chính xác tiêu đề tên và mã bệnh nhân
+                            if ((h.includes('họ tên') || h.includes('ho ten') || h === 'tên bn' || h === 'bệnh nhân' || h === 'name') && !h.includes('mã')) {
+                                idxName = colIdx;
+                            } else if (h.includes('hsba') || h.includes('mã bn') || h.includes('mã hsba') || h.includes('mã bệnh nhân')) {
+                                idxHsba = colIdx;
+                            } else if (h.includes('đối tượng') || h.includes('doi tuong') || h === 'loại') {
+                                idxType = colIdx;
+                            } else if (h.includes('dịch vụ') || h.includes('kỹ thuật') || h.includes('thủ thuật') || h.includes('procedure')) {
+                                idxProc = colIdx;
+                            } else if (h.includes('bắt đầu') || h.includes('bat dau') || h.includes('gio bd')) {
+                                idxStart = colIdx;
+                            } else if (h.includes('kết thúc') || h.includes('ket thuc') || h.includes('gio kt')) {
+                                idxEnd = colIdx;
+                            } else if (h.includes('người thực hiện') || h.includes('nguoi thuc hien') || h === 'ktv' || h.includes('người làm')) {
+                                idxPerf = colIdx;
+                            } else if (h.includes('người phụ') || h.includes('nguoi phu') || h === 'phụ' || h.includes('phụ châm')) {
+                                idxAssist = colIdx;
+                            } else if (h.includes('mã máy') || h.includes('ma may') || h === 'máy' || h.includes('thiết bị')) {
+                                idxMachine = colIdx;
+                            } else if (h.includes('bs chỉ định') || h.includes('bs chi dinh') || h.includes('bác sĩ chỉ định') || h.includes('bs phụ trách')) {
+                                idxDoc = colIdx;
+                            } else if (h.includes('trạng thái') || h.includes('trang thai')) {
+                                idxStatus = colIdx;
+                            } else if (h.includes('ngày') || h.includes('ngay')) {
+                                idxDate = colIdx;
+                            }
                         });
                     }
 
@@ -981,8 +1017,8 @@
                 return { status: 'Hoàn thành', colorClass: 'bg-slate-100 text-slate-600' };
             }
         }
-        
-        function renderTable() {
+
+                function renderTable() {
             const selectedDate = document.getElementById('currentDate').value;
             if (!allTreatments[selectedDate] && !fetchedDates[selectedDate]) fetchDataFromCloud(selectedDate);
             
@@ -1025,8 +1061,12 @@
             }
 
             let htmlBuffer = '';
+            // SỬA LỖI: Tìm chính xác vị trí dòng trong mảng gốc allTreatments[selectedDate]
+            const originalList = allTreatments[selectedDate] || [];
             displayTreatments.forEach((t) => {
-                const actualIdx = treatments.indexOf(t);
+                const actualIdx = originalList.findIndex(item => item === t);
+                if (actualIdx === -1) return;
+
                 htmlBuffer += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-3.5 font-bold text-slate-700 whitespace-nowrap">${t.name}</td>
