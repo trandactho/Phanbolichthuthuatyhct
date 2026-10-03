@@ -534,12 +534,16 @@
         }
 
         function initApp() {
-            loadDataFromStorage();
-            initProcedureCheckboxes();
-            syncOnlineTime();
+    // Tự động xóa cache localStorage mỗi khi ứng dụng khởi động
+    localStorage.clear();
 
-            setInterval(() => { renderTable(); }, 30000);
-        }
+    loadDataFromStorage();
+    initProcedureCheckboxes();
+    syncOnlineTime();
+
+    setInterval(() => { renderTable(); }, 30000);
+}
+
 
         function initProcedureCheckboxes() {
             const container = document.getElementById('procedureCheckboxContainer');
