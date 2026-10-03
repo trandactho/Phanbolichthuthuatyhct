@@ -105,14 +105,19 @@
                     <h2 class="font-bold text-slate-700 text-sm sm:text-base">📋 Lịch Điều Trị Kỹ Thuật</h2>
                     <span id="tableRowCount" class="text-xs font-semibold text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full whitespace-nowrap">0 dòng</span>
                 </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <select id="filterType" onchange="renderTable()" class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white font-medium outline-none shadow-sm">
-                        <option value="all">Tất cả đối tượng</option>
-                        <option value="Nội trú">Chỉ Nội trú</option>
-                        <option value="Ngoại trú">Chỉ Ngoại trú</option>
-                    </select>
-                    <input type="text" id="tableSearchFilter" onkeyup="renderTable()" placeholder="Lọc tên, HSBA..." class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white outline-none shadow-sm w-full sm:w-64">
-                </div>
+                <!-- Bổ sung nút Xóa Toàn Bộ vào khối chứa các nút lọc/tìm kiếm -->
+<div class="flex items-center gap-2 w-full sm:w-auto">
+    <button onclick="deleteAllRows()" class="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition flex items-center gap-1 whitespace-nowrap">
+        <span>🗑️️</span> Xóa Toàn Bộ
+    </button>
+    <select id="filterType" onchange="renderTable()" class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white font-medium outline-none shadow-sm">
+        <option value="all">Tất cả đối tượng</option>
+        <option value="Nội trú">Chỉ Nội trú</option>
+        <option value="Ngoại trú">Chỉ Ngoại trú</option>
+    </select>
+    <input type="text" id="tableSearchFilter" onkeyup="renderTable()" placeholder="Lọc tên, HSBA..." class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs sm:text-sm bg-white outline-none shadow-sm w-full sm:w-64">
+</div>
+
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-xs sm:text-sm text-left">
@@ -1189,6 +1194,26 @@
                 renderTable();
             }
         }
+        
+        function deleteAllRows() {
+    if (!verifyAdminPermission()) return;
+    
+    const selectedDate = document.getElementById('currentDate').value;
+    const currentTreatments = allTreatments[selectedDate] || [];
+
+    if (currentTreatments.length === 0) {
+        alert(`Không có lịch điều trị nào trong ngày ${selectedDate} để xóa!`);
+        return;
+    }
+
+    if (confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA TOÀN BỘ ${currentTreatments.length} dòng lịch điều trị ngày ${selectedDate}?`)) {
+        allTreatments[selectedDate] = [];
+        saveDataToStorage();
+        renderTable();
+        alert(`Đã xóa toàn bộ lịch điều trị ngày ${selectedDate}.`);
+    }
+}
+
 
         function renderTable() {
             const selectedDate = document.getElementById('currentDate').value;
