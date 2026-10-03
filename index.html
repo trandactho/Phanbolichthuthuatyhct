@@ -749,179 +749,182 @@
         }     
 
         function autoAllocateDaily() {
-            if (!verifyAdminPermission()) return;
-            if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
+    if (!verifyAdminPermission()) return;
+    if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
 
-            let mapDateToPatients = {};
-            patientsWaiting.forEach(p => {
-                (p.dates || []).forEach((dateStr, sessionIdx) => {
-                    if (!mapDateToPatients[dateStr]) mapDateToPatients[dateStr] = [];
-                    p.procedures.forEach(procName => {
-                        mapDateToPatients[dateStr].push({ 
-                            patient: p, 
-                            procedure: procName, 
-                            sessionIdx, 
-                            totalSessions: p.dates.length 
-                        });
-                    });
+    let mapDateToPatients = {};
+    patientsWaiting.forEach(p => {
+        (p.dates || []).forEach((dateStr, sessionIdx) => {
+            if (!mapDateToPatients[dateStr]) mapDateToPatients[dateStr] = [];
+            p.procedures.forEach(procName => {
+                mapDateToPatients[dateStr].push({ 
+                    patient: p, 
+                    procedure: procName, 
+                    sessionIdx, 
+                    totalSessions: p.dates.length 
                 });
             });
+        });
+    });
 
-            const timeToMin = (timeStr) => {
-                if (!timeStr || !timeStr.includes(':')) return 0;
-                let [h, m] = timeStr.trim().split(':').map(Number);
-                return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
-            };
+    const timeToMin = (timeStr) => {
+        if (!timeStr || !timeStr.includes(':')) return 0;
+        let [h, m] = timeStr.trim().split(':').map(Number);
+        return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+    };
 
-            Object.keys(mapDateToPatients).forEach(targetDateStr => {
-                let morningStart = 7 * 60 + 2;       // 07:02
-                let morningEndLimit = 12 * 60 + 30;  // 12:30
-                let afternoonStart = 13 * 60;        // 13:00
-                let maxEveningLimit = 19 * 60;       // 19:00
+    Object.keys(mapDateToPatients).forEach(targetDateStr => {
+        let morningStart = 7 * 60 + 2;       // 07:02
+        let morningEndLimit = 12 * 60 + 30;  // 12:30
+        let afternoonStart = 13 * 60;        // 13:00
+        let maxEveningLimit = 19 * 60;       // 19:00
 
-                let existingTreatments = allTreatments[targetDateStr] || [];
+        let existingTreatments = allTreatments[targetDateStr] || [];
 
-                let machineFreeTime = {};
-                Object.keys(resourceConfig.machines || {}).forEach(mType => {
-                    let count = resourceConfig.machines[mType];
-                    for (let i = 1; i <= count; i++) {
-                        machineFreeTime[`${mType}_${i}`] = morningStart;
-                    }
-                });
+        // --- XÂY DỰNG MẢNG LỊCH BẬN CHI TIẾT (Tránh xung đột khi phân bổ bổ sung) ---
+        let occupiedSlots = {
+            machines: {},  // Khoảng bận của từng máy
+            patients: {},  // Khoảng bận của từng bệnh nhân
+            staff: {}      // Khoảng bận hands-on 5p của nhân sự (Chính + Phụ)
+        };
 
-                let patientFreeTime = {};
-                let staffHandsOnSchedules = {};
+        existingTreatments.forEach(t => {
+            let startM = timeToMin(t.startTime);
+            let endM = timeToMin(t.endTime);
 
-                existingTreatments.forEach(t => {
-                    let startM = timeToMin(t.startTime);
-                    let endM = timeToMin(t.endTime);
+            // Ghi nhận máy bận
+            if (t.machine && t.machine !== '-') {
+                let mKey = t.machine.replace(' ', '_');
+                if (!occupiedSlots.machines[mKey]) occupiedSlots.machines[mKey] = [];
+                occupiedSlots.machines[mKey].push({ start: startM, end: endM });
+            }
 
-                    if (t.machine && t.machine !== '-') {
-                        let mKey = t.machine.replace(' ', '_');
-                        if (machineFreeTime[mKey] !== undefined) {
-                            machineFreeTime[mKey] = Math.max(machineFreeTime[mKey], endM);
+            // Ghi nhận bệnh nhân bận
+            if (t.hsba) {
+                if (!occupiedSlots.patients[t.hsba]) occupiedSlots.patients[t.hsba] = [];
+                occupiedSlots.patients[t.hsba].push({ start: startM, end: endM });
+            }
+
+            // Ghi nhận nhân sự (Chính + Phụ) bận 5 phút thủ thuật đầu ca
+            [t.performer, t.assistant].forEach(staffName => {
+                if (staffName && staffName !== '-') {
+                    if (!occupiedSlots.staff[staffName]) occupiedSlots.staff[staffName] = [];
+                    occupiedSlots.staff[staffName].push({ start: startM, end: startM + 5 });
+                }
+            });
+        });
+
+        // Hàm kiểm tra rảnh lịch tổng quát
+        const isSlotAvailable = (startM, durationM, occupiedArray) => {
+            if (!occupiedArray || occupiedArray.length === 0) return true;
+            let endM = startM + durationM;
+            return !occupiedArray.some(slot => !(endM <= slot.start || startM >= slot.end));
+        };
+
+        let newDailyTreatments = [];
+
+        mapDateToPatients[targetDateStr].forEach(item => {
+            let p = item.patient;
+            let procName = item.procedure;
+            let foundProc = availableProcedures.find(proc => proc.name.toLowerCase() === procName.toLowerCase());
+            let cat = foundProc ? foundProc.category : procName.split('(')[0].trim();
+            let duration = foundProc ? foundProc.duration : 15;
+            let setupHandsOnDuration = 5; 
+
+            let qualifiedPerformers = getQualifiedPerformers(cat);
+            let assistant = getAssistant(cat);
+
+            let preferredShift = p.shiftChoice || 'auto';
+            let baseStart = preferredShift === 'chieu' ? afternoonStart : morningStart;
+
+            // Danh sách các máy phù hợp cho kỹ thuật
+            let machineCount = resourceConfig.machines[cat] || 1;
+            let availableMachineKeys = [];
+            for (let i = 1; i <= machineCount; i++) {
+                availableMachineKeys.push(`${cat}_${i}`);
+            }
+
+            let bestStart = Infinity;
+            let bestMachineKey = availableMachineKeys[0];
+            let chosenPerformer = qualifiedPerformers[0];
+
+            // Tìm khoảng thời gian rảnh sớm nhất thỏa mãn Máy + Bệnh nhân + Người làm chính + Người phụ
+            availableMachineKeys.forEach(mKey => {
+                qualifiedPerformers.forEach(perf => {
+                    let testStart = baseStart;
+
+                    while (testStart + duration <= maxEveningLimit) {
+                        // Tự động bỏ qua giờ nghỉ trưa nếu chọn ca tự động
+                        if (preferredShift === 'auto' && (testStart + duration > morningEndLimit) && testStart < afternoonStart) {
+                            testStart = afternoonStart;
                         }
-                    }
 
-                    if (t.hsba) {
-                        patientFreeTime[t.hsba] = Math.max(patientFreeTime[t.hsba] || 0, endM);
-                    }
+                        let isMachineFree = isSlotAvailable(testStart, duration, occupiedSlots.machines[mKey]);
+                        let isPatientFree = isSlotAvailable(testStart, duration, occupiedSlots.patients[p.hsba]);
+                        let isPerfFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[perf]);
+                        let isAssistFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[assistant]);
 
-                    if (t.performer && t.performer !== '-') {
-                        if (!staffHandsOnSchedules[t.performer]) staffHandsOnSchedules[t.performer] = [];
-                        staffHandsOnSchedules[t.performer].push({ start: startM, end: startM + 5 });
-                    }
-                });
-
-                let newDailyTreatments = [];
-
-                mapDateToPatients[targetDateStr].forEach(item => {
-                    let p = item.patient;
-                    let procName = item.procedure;
-                    let foundProc = availableProcedures.find(proc => proc.name.toLowerCase() === procName.toLowerCase());
-                    let cat = foundProc ? foundProc.category : procName.split('(')[0].trim();
-                    let duration = foundProc ? foundProc.duration : 15;
-                    let setupHandsOnDuration = 5; 
-
-                    let qualifiedPerformers = getQualifiedPerformers(cat);
-                    let assistant = getAssistant(cat);
-
-                    let preferredShift = p.shiftChoice || 'auto';
-                    let baseTime = preferredShift === 'chieu' ? afternoonStart : morningStart;
-
-                    let availableMachineKeys = Object.keys(machineFreeTime).filter(mKey => 
-                        mKey.toLowerCase().startsWith(cat.toLowerCase() + '_') || mKey.toLowerCase() === cat.toLowerCase()
-                    );
-
-                    if (availableMachineKeys.length === 0) {
-                        let mKey = `${cat}_1`;
-                        machineFreeTime[mKey] = baseTime;
-                        availableMachineKeys = [mKey];
-                    }
-
-                    let earliestPatientTime = patientFreeTime[p.hsba] !== undefined ? patientFreeTime[p.hsba] : baseTime;
-
-                    const isStaffFreeForHandsOn = (staffName, startM, durationM) => {
-                        if (!staffHandsOnSchedules[staffName]) staffHandsOnSchedules[staffName] = [];
-                        let endM = startM + durationM;
-                        return !staffHandsOnSchedules[staffName].some(slot => !(endM <= slot.start || startM >= slot.end));
-                    };
-
-                    let bestStart = Infinity;
-                    let bestMachineKey = availableMachineKeys[0];
-                    let chosenPerformer = qualifiedPerformers[0];
-
-                    availableMachineKeys.forEach(mKey => {
-                        let mFree = machineFreeTime[mKey] !== undefined ? machineFreeTime[mKey] : baseTime;
-                        let candidateStart = Math.max(baseTime, mFree, earliestPatientTime);
-
-                        if (preferredShift === 'auto' && (candidateStart + duration > morningEndLimit) && candidateStart < afternoonStart) {
-                            candidateStart = afternoonStart;
-                        }
-
-                        qualifiedPerformers.forEach(perf => {
-                            let testStart = candidateStart;
-                            
-                            while (!isStaffFreeForHandsOn(perf, testStart, setupHandsOnDuration)) {
-                                testStart += 1;
-                                if (preferredShift === 'auto' && (testStart + duration > morningEndLimit) && testStart < afternoonStart) {
-                                    testStart = afternoonStart;
-                                }
-                            }
-
+                        if (isMachineFree && isPatientFree && isPerfFree && isAssistFree) {
                             if (testStart < bestStart) {
                                 bestStart = testStart;
                                 bestMachineKey = mKey;
                                 chosenPerformer = perf;
                             }
-                        });
-                    });
+                            break; // Tìm thấy slot phù hợp nhất cho cặp (máy, performer) này
+                        }
 
-                    let startMin = bestStart;
-                    let endMin = startMin + duration;
-
-                    if (endMin > maxEveningLimit) {
-                        endMin = maxEveningLimit;
-                        startMin = Math.max(afternoonStart, endMin - duration);
+                        testStart += 1; // Nhích 1 phút để tìm khe trống kế tiếp
                     }
-
-                    machineFreeTime[bestMachineKey] = endMin; 
-                    patientFreeTime[p.hsba] = endMin; 
-
-                    if (!staffHandsOnSchedules[chosenPerformer]) staffHandsOnSchedules[chosenPerformer] = [];
-                    staffHandsOnSchedules[chosenPerformer].push({ 
-                        start: startMin, 
-                        end: startMin + setupHandsOnDuration 
-                    });
-
-                    let sH = Math.floor(startMin / 60), sM = startMin % 60;
-                    let eH = Math.floor(endMin / 60), eM = endMin % 60;
-
-                    newDailyTreatments.push(sanitizeTreatmentRecord({
-                        name: p.name,
-                        hsba: p.hsba,
-                        type: p.type,
-                        procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
-                        startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
-                        endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
-                        performer: chosenPerformer,
-                        assistant: assistant,
-                        machine: bestMachineKey.replace('_', ' '),
-                        doctor: p.doctor || 'BS Đoan Trang',
-                        status: 'Chờ thực hiện'
-                    }));
                 });
-
-                if (newDailyTreatments.length > 0) {
-                    allTreatments[targetDateStr] = (allTreatments[targetDateStr] || []).concat(newDailyTreatments);
-                }
             });
 
-            patientsWaiting = [];
-            saveDataToStorage();
-            renderTable();
-            manualSyncToGoogleSheet();
+            let startMin = bestStart;
+            let endMin = startMin + duration;
+
+            if (startMin !== Infinity && endMin <= maxEveningLimit) {
+                // Đánh dấu lịch bận mới vào tập occupiedSlots
+                if (!occupiedSlots.machines[bestMachineKey]) occupiedSlots.machines[bestMachineKey] = [];
+                occupiedSlots.machines[bestMachineKey].push({ start: startMin, end: endMin });
+
+                if (!occupiedSlots.patients[p.hsba]) occupiedSlots.patients[p.hsba] = [];
+                occupiedSlots.patients[p.hsba].push({ start: startMin, end: endMin });
+
+                [chosenPerformer, assistant].forEach(staffName => {
+                    if (staffName && staffName !== '-') {
+                        if (!occupiedSlots.staff[staffName]) occupiedSlots.staff[staffName] = [];
+                        occupiedSlots.staff[staffName].push({ start: startMin, end: startMin + setupHandsOnDuration });
+                    }
+                });
+
+                let sH = Math.floor(startMin / 60), sM = startMin % 60;
+                let eH = Math.floor(endMin / 60), eM = endMin % 60;
+
+                newDailyTreatments.push(sanitizeTreatmentRecord({
+                    name: p.name,
+                    hsba: p.hsba,
+                    type: p.type,
+                    procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
+                    startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
+                    endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
+                    performer: chosenPerformer,
+                    assistant: assistant,
+                    machine: bestMachineKey.replace('_', ' '),
+                    doctor: p.doctor || 'BS Đoan Trang',
+                    status: 'Chờ thực hiện'
+                }));
+            }
+        });
+
+        if (newDailyTreatments.length > 0) {
+            allTreatments[targetDateStr] = (allTreatments[targetDateStr] || []).concat(newDailyTreatments);
         }
+    });
+
+    patientsWaiting = [];
+    saveDataToStorage();
+    renderTable();
+    manualSyncToGoogleSheet();
+}
 
         async function manualSyncToGoogleSheet() {
             if (!verifyAdminPermission()) return;
