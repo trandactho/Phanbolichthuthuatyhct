@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.5 - Optimized)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.6 - Optimized)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -72,7 +72,7 @@
         <!-- Action Toolbar Buttons -->
         <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-1">
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Ca Sáng: 07:02 - 12:30 | Ca Chiều: 13:00 - 19:00)</p>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">⚡ Thao Tác Hệ Thống (Ca Sáng: 07:02 - 12:30 | Ca Chiều: 13:00 - 16:30)</p>
                 <span id="onlineTimeStatus" class="text-[11px] font-medium text-emerald-600 flex items-center gap-1">🌐 Đang đồng bộ giờ...</span>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-2.5">
@@ -351,6 +351,12 @@
         let editingWaitingIndex = -1;
 
         const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyEP04TcPNLn3pvLlL-ZTCvYS8gDgMJVQHisMVnXtx2Xqsa1XD3RbbheZeJsxqzZZZyBA/exec";
+
+        const timeToMin = (timeStr) => {
+            if (!timeStr || !timeStr.includes(':')) return 0;
+            let [h, m] = timeStr.trim().split(':').map(Number);
+            return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+        };
 
         function getLocalDateStr(d = new Date()) {
             const yyyy = d.getFullYear();
@@ -887,13 +893,11 @@
                 });
             });
 
-            const timeToMin = (timeStr) => {
-                if (!timeStr || !timeStr.includes(':')) return 0;
-                let [h, m] = timeStr.trim().split(':').map(Number);
-                return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
-            };
-
             Object.keys(mapDateToPatients).forEach(targetDateStr => {
+                let [yVal, mVal, dVal] = targetDateStr.split('-').map(Number);
+                let dateObj = new Date(yVal, mVal - 1, dVal);
+                let dayOfWeek = dateObj.getDay(); // 0 = Chủ Nhật, 6 = Thứ 7
+
                 let morningStart = 7 * 60 + 2;       // 07:02
                 let morningEndLimit = 12 * 60 + 30;  // 12:30
                 let afternoonStart = 13 * 60;        // 13:00
@@ -906,6 +910,8 @@
                     patients: {},  
                     staff: {}      
                 };
+
+                let patientLastEndMin = {}; // Theo dõi mốc kết thúc muộn nhất của mỗi bệnh nhân
 
                 existingTreatments.forEach(t => {
                     let startM = timeToMin(t.startTime);
@@ -920,6 +926,10 @@
                     if (t.hsba) {
                         if (!occupiedSlots.patients[t.hsba]) occupiedSlots.patients[t.hsba] = [];
                         occupiedSlots.patients[t.hsba].push({ start: startM, end: endM });
+                        
+                        if (!patientLastEndMin[t.hsba] || endM > patientLastEndMin[t.hsba]) {
+                            patientLastEndMin[t.hsba] = endM;
+                        }
                     }
 
                     [t.performer, t.assistant].forEach(staffName => {
@@ -940,6 +950,13 @@
 
                 mapDateToPatients[targetDateStr].forEach(item => {
                     let p = item.patient;
+
+                    // Bác sĩ Đoan Trang không làm việc Thứ 7 (day 6) và Chủ Nhật (day 0)
+                    let isBsDoanTrang = (p.doctor || '').toLowerCase().includes('đoan trang');
+                    if (isBsDoanTrang && (dayOfWeek === 6 || dayOfWeek === 0)) {
+                        return; // Bỏ qua không chia ca Thứ 7 / CN cho BS Đoan Trang
+                    }
+
                     let procName = item.procedure;
                     let foundProc = availableProcedures.find(proc => proc.name.toLowerCase() === procName.toLowerCase());
                     let cat = foundProc ? foundProc.category : procName.split('(')[0].trim();
@@ -955,11 +972,18 @@
                     // Mốc giờ bắt đầu sớm nhất tính theo Giờ Khám + 5 phút
                     let examTimeMin = timeToMin(p.examTime || '07:30');
                     if (examTimeMin > 0) {
-                        let examOffsetMin = examTimeMin + 5; // Tự động nhảy sau giờ khám 5 phút
+                        let examOffsetMin = examTimeMin + 5;
                         baseStart = Math.max(baseStart, examOffsetMin);
                     }
 
-                    let shiftMaxLimit = preferredShift === 'sang' ? morningEndLimit : maxEveningLimit;
+                    // Nếu bệnh nhân đã làm thủ thuật trước đó trong ngày -> Thủ thuật tiếp theo bắt đầu sau 1 phút
+                    if (patientLastEndMin[p.hsba]) {
+                        baseStart = Math.max(baseStart, patientLastEndMin[p.hsba] + 1);
+                    }
+
+                    // Bác sĩ Đoan Trang chỉ làm việc đến 16:30 ca chiều (16*60+30 = 990)
+                    let doctorMaxLimit = isBsDoanTrang ? (16 * 60 + 30) : maxEveningLimit;
+                    let shiftMaxLimit = preferredShift === 'sang' ? morningEndLimit : doctorMaxLimit;
 
                     let machineCount = resourceConfig.machines[cat] || 1;
                     let availableMachineKeys = [];
@@ -1002,12 +1026,15 @@
                     let startMin = bestStart;
                     let endMin = startMin + duration;
 
-                    if (startMin !== Infinity && endMin <= maxEveningLimit) {
+                    if (startMin !== Infinity && endMin <= shiftMaxLimit) {
                         if (!occupiedSlots.machines[bestMachineKey]) occupiedSlots.machines[bestMachineKey] = [];
                         occupiedSlots.machines[bestMachineKey].push({ start: startMin, end: endMin });
 
                         if (!occupiedSlots.patients[p.hsba]) occupiedSlots.patients[p.hsba] = [];
                         occupiedSlots.patients[p.hsba].push({ start: startMin, end: endMin });
+
+                        // Cập nhật mốc kết thúc muộn nhất của BN để thủ thuật tiếp theo bắt đầu sau 1 phút
+                        patientLastEndMin[p.hsba] = endMin;
 
                         [chosenPerformer, assistant].forEach(staffName => {
                             if (staffName && staffName !== '-') {
@@ -1038,6 +1065,11 @@
                 if (newDailyTreatments.length > 0) {
                     allTreatments[targetDateStr] = (allTreatments[targetDateStr] || []).concat(newDailyTreatments);
                 }
+
+                // Sắp xếp lại lịch trong ngày theo thứ tự từ sáng tới chiều
+                if (allTreatments[targetDateStr]) {
+                    allTreatments[targetDateStr].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+                }
             });
 
             patientsWaiting = [];
@@ -1049,7 +1081,6 @@
 
         async function manualSyncToGoogleSheet() {        
             const datesToSync = Object.keys(allTreatments).filter(d => allTreatments[d] && allTreatments[d].length > 0);
-            
             let successCount = 0;
             
             try {
@@ -1328,18 +1359,10 @@
             if (selectedDate > todayStr) return { status: 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
 
             const currentMin = now.getHours() * 60 + now.getMinutes();
+            const startMin = timeToMin(t.startTime);
+            const endMin = timeToMin(t.endTime);
 
-            const parseMin = (str) => {
-                if (!str || !str.includes(':')) return -1;
-                const [h, m] = str.trim().split(':').map(Number);
-                if (isNaN(h) || isNaN(m)) return -1;
-                return h * 60 + m;
-            };
-
-            const startMin = parseMin(t.startTime);
-            const endMin = parseMin(t.endTime);
-
-            if (startMin === -1 || endMin === -1) {
+            if (startMin === 0 || endMin === 0) {
                 return { status: t.status || 'Chờ thực hiện', colorClass: 'bg-amber-100 text-amber-800' };
             }
 
@@ -1394,6 +1417,9 @@
             
             sanitizeAllData();
             treatments = allTreatments[selectedDate] || [];
+
+            // Tự động sắp xếp các ca trong bảng theo thứ tự thời gian từ Sáng tới Chiều
+            treatments.sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 
             treatments.forEach(t => {
                 const rt = getRealtimeStatus(t, selectedDate);
