@@ -375,17 +375,19 @@
 
         function sanitizeTreatmentRecord(t) {
             if (!t) return t;
-            let name = String(t.name || '').trim();
-            let hsba = String(t.hsba || '').trim();
-            let type = String(t.type || 'Ngoại trú').trim();
-            let procedure = String(t.procedure || '').trim();
-            let startTime = String(t.startTime || '07:02').trim();
-            let endTime = String(t.endTime || '07:17').trim();
-            let performer = String(t.performer || '-').trim();
-            let assistant = String(t.assistant || '-').trim();
-            let machine = String(t.machine || '-').trim();
-            let doctor = String(t.doctor || 'BS Đoan Trang').trim();
-            let status = String(t.status || 'Chờ thực hiện').trim();
+    let name = String(t.name || '').trim();
+    let hsba = String(t.hsba || '').trim();
+    let type = String(t.type || 'Ngoại trú').trim();
+    let examTime = String(t.examTime || '06:57').trim();
+    let shiftChoice = String(t.shiftChoice || 'auto').trim();
+    let procedure = String(t.procedure || '').trim();
+    let startTime = String(t.startTime || '06:57').trim();
+    let endTime = String(t.endTime || '07:45').trim();
+    let performer = String(t.performer || '-').trim();
+    let assistant = String(t.assistant || '-').trim();
+    let machine = String(t.machine || '-').trim();
+    let doctor = String(t.doctor || 'BS Đoan Trang').trim();
+    let status = String(t.status || 'Chờ thực hiện').trim();
 
             const isDoctor = (val) => {
                 if (!val || val === '-') return false;
@@ -1050,18 +1052,21 @@
                         let eH = Math.floor(endMin / 60), eM = endMin % 60;
 
                         newDailyTreatments.push(sanitizeTreatmentRecord({
-                            name: p.name,
-                            hsba: p.hsba,
-                            type: p.type,
-                            procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
-                            startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
-                            endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
-                            performer: chosenPerformer,
-                            assistant: assistant,
-                            machine: bestMachineKey.replace('_', ' '),
-                            doctor: p.doctor || 'BS Đoan Trang',
-                            status: 'Chờ thực hiện'
-                        }));
+    name: p.name,
+    hsba: p.hsba,
+    type: p.type,
+    examTime: p.examTime || '06:57',
+    shiftChoice: p.shiftChoice || 'auto',
+    procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
+    startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
+    endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
+    performer: chosenPerformer,
+    assistant: assistant,
+    machine: bestMachineKey.replace('_', ' '),
+    doctor: p.doctor || 'BS Đoan Trang',
+    status: 'Chờ thực hiện'
+}));
+
                     }
                 });
 
