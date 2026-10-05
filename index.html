@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.6 - Optimized)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v3.7)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -24,8 +24,11 @@
             <div class="flex items-center gap-3 w-full sm:w-auto">
                 <div class="bg-blue-800 p-2 rounded-xl shadow-inner text-xl">🏥</div>
                 <div>
-                    <h1 class="text-xs sm:text-sm font-extrabold uppercase tracking-wide">PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</h1>
-                    <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
+                    <h1 class="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide flex items-center flex-wrap gap-1.5">
+    <span>PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</span>
+    <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v3.7</span>
+</h1>
+  <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
@@ -206,7 +209,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">Giờ khám *</label>
-                        <input type="time" id="pExamTime" value="07:30" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold text-slate-700 outline-none">
+                        <input type="time" id="pExamTime" value="06:57" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold text-slate-700 outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">Ca mong muốn</label>
@@ -350,7 +353,7 @@
         let selectedPatientDates = [];
         let editingWaitingIndex = -1;
 
-        const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyEP04TcPNLn3pvLlL-ZTCvYS8gDgMJVQHisMVnXtx2Xqsa1XD3RbbheZeJsxqzZZZyBA/exec";
+        const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzxZHME0yqZvFvfC9Z_nMDR94OpDeVTdTgEYkbmpw66HyuIFV035EhXQPLUswQBizZxXg/exec";
 
         const timeToMin = (timeStr) => {
             if (!timeStr || !timeStr.includes(':')) return 0;
@@ -376,8 +379,8 @@
             let hsba = String(t.hsba || '').trim();
             let type = String(t.type || 'Ngoại trú').trim();
             let procedure = String(t.procedure || '').trim();
-            let startTime = String(t.startTime || '07:30').trim();
-            let endTime = String(t.endTime || '07:45').trim();
+            let startTime = String(t.startTime || '07:02').trim();
+            let endTime = String(t.endTime || '07:17').trim();
             let performer = String(t.performer || '-').trim();
             let assistant = String(t.assistant || '-').trim();
             let machine = String(t.machine || '-').trim();
@@ -595,7 +598,7 @@
             document.getElementById('pName').value = '';
             document.getElementById('pHsba').value = '';
             document.getElementById('pType').value = 'Ngoại trú';
-            document.getElementById('pExamTime').value = '07:30';
+            document.getElementById('pExamTime').value = '06:57';
             document.getElementById('pShiftChoice').value = 'auto';
             document.querySelectorAll('input[name="patientProc"]').forEach(c => c.checked = false);
             
@@ -614,7 +617,7 @@
             document.getElementById('pName').value = p.name || '';
             document.getElementById('pHsba').value = p.hsba || '';
             document.getElementById('pType').value = p.type || 'Ngoại trú';
-            document.getElementById('pExamTime').value = p.examTime || '07:30';
+            document.getElementById('pExamTime').value = p.examTime || '06:57';
             document.getElementById('pShiftChoice').value = p.shiftChoice || 'auto';
 
             populateDoctorDropdown();
@@ -718,7 +721,7 @@
                         <td class="p-2 font-bold text-slate-800">${p.name}</td>
                         <td class="p-2 text-blue-600 font-bold">${p.hsba}</td>
                         <td class="p-2"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.type==='Nội trú'?'bg-blue-100 text-blue-800':'bg-indigo-100 text-indigo-800'}">${p.type}</span></td>
-                        <td class="p-2 text-center font-mono font-bold text-amber-700">${p.examTime || '07:30'}</td>
+                        <td class="p-2 text-center font-mono font-bold text-amber-700">${p.examTime || '06:57'}</td>
                         <td class="p-2 font-medium text-slate-700 leading-relaxed">${(p.procedures || []).join(', ')}</td>
                         <td class="p-2 text-center text-slate-600 font-mono text-[11px]">${(p.dates || []).join('<br>')}</td>
                         <td class="p-1 text-center align-middle">
@@ -804,7 +807,7 @@
             const hsba = document.getElementById('pHsba').value.trim();
             const type = document.getElementById('pType').value;
             const doctor = document.getElementById('pDoctor').value;
-            const examTime = document.getElementById('pExamTime').value || '07:30';
+            const examTime = document.getElementById('pExamTime').value || '06:57';
             const shiftChoice = document.getElementById('pShiftChoice').value;
             const selectedProcs = Array.from(document.querySelectorAll('input[name="patientProc"]:checked')).map(chk => chk.value);
 
@@ -970,7 +973,7 @@
                     let baseStart = preferredShift === 'chieu' ? afternoonStart : morningStart;
 
                     // Mốc giờ bắt đầu sớm nhất tính theo Giờ Khám + 5 phút
-                    let examTimeMin = timeToMin(p.examTime || '07:30');
+                    let examTimeMin = timeToMin(p.examTime || '06:57');
                     if (examTimeMin > 0) {
                         let examOffsetMin = examTimeMin + 5;
                         baseStart = Math.max(baseStart, examOffsetMin);
@@ -1142,7 +1145,7 @@
             return fallbackDate;
         }
 
-        function parseExcelTime(val, fallbackTime = '07:30') {
+        function parseExcelTime(val, fallbackTime = '06:57') {
             if (!val) return fallbackTime;
             let str = String(val).trim();
             if (/^\d{1,2}:\d{2}$/.test(str)) {
@@ -1164,7 +1167,7 @@
                     "Họ Tên": "Nguyễn Văn A",
                     "Mã HSBA": "2400123",
                     "Đối Tượng": "Ngoại trú",
-                    "Giờ Khám": "07:30",
+                    "Giờ Khám": "06:57",
                     "Dịch Vụ Kỹ Thuật": "Điện châm (20p)",
                     "BS Chỉ Định": "BS Trần Thị Đoan Trang",
                     "Ngày": getLocalDateStr()
@@ -1272,7 +1275,7 @@
                         let name = idxName !== -1 ? cellValues[idxName] : '';
                         let hsba = idxHsba !== -1 ? cellValues[idxHsba] : '';
                         let type = idxType !== -1 ? cellValues[idxType] : '';
-                        let rawExamTime = idxExamTime !== -1 ? cellValues[idxExamTime] : '07:30';
+                        let rawExamTime = idxExamTime !== -1 ? cellValues[idxExamTime] : '06:57';
                         let proc = idxProc !== -1 ? cellValues[idxProc] : '';
                         let doc = idxDoc !== -1 ? cellValues[idxDoc] : '';
                         let rawDate = idxDate !== -1 ? cellValues[idxDate] : currentDateVal;
@@ -1286,7 +1289,7 @@
                         if (!name && !hsba) continue;
 
                         let dateStr = parseExcelDate(rawDate, currentDateVal);
-                        let examTimeStr = parseExcelTime(rawExamTime, '07:30');
+                        let examTimeStr = parseExcelTime(rawExamTime, '06:57');
                         let patientName = name || 'Bệnh nhân';
                         let patientHsba = hsba || '-';
                         let patientType = type.toLowerCase().includes('nội') ? 'Nội trú' : 'Ngoại trú';
