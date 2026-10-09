@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.1)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -26,7 +26,7 @@
                 <div>
                     <h1 class="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide flex items-center flex-wrap gap-1.5">
                         <span>PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</span>
-                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.1</span>
+                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.2</span>
                     </h1>
                     <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
                 </div>
@@ -210,6 +210,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">Giờ khám *</label>
                         <input type="time" id="pExamTime" value="06:57" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold text-slate-700 outline-none">
+                        <span class="text-[10px] text-slate-400 block mt-0.5">(Lần 1 vào viện; các ngày sau tự xếp từ đầu ca)</span>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">Ca mong muốn</label>
@@ -361,6 +362,24 @@
             return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
         };
 
+        // Kiểm tra lịch bận cố định của Bác sĩ (Đoan Trang & Huyền Trang)
+        function isDoctorBusySchedule(staffName, startM, durationM) {
+            if (!staffName || staffName === '-' || staffName === '') return false;
+            let endM = startM + durationM;
+            let nameLower = staffName.toLowerCase();
+
+            // BS Đoan Trang: Bận 8:30 (510p) - 11:30 (690p) và nghỉ sau 16:30 (990p)
+            if (nameLower.includes('đoan trang')) {
+                if (!(endM <= 510 || startM >= 690)) return true;
+                if (endM > 990) return true;
+            }
+            // BS Huyền Trang: Bận 13:30 (810p) - 16:30 (990p)
+            if (nameLower.includes('huyền trang')) {
+                if (!(endM <= 810 || startM >= 990)) return true;
+            }
+            return false;
+        }
+
         function getLocalDateStr(d = new Date()) {
             const yyyy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -386,7 +405,7 @@
             let performer = String(t.performer || '-').trim();
             let assistant = String(t.assistant || '-').trim();
             let machine = String(t.machine || '-').trim();
-            let doctor = String(t.doctor || 'BS Đoan Trang').trim();
+            let doctor = String(t.doctor || 'BS Trần Thị Đoan Trang').trim();
             let status = String(t.status || 'Chờ thực hiện').trim();
 
             return { name, hsba, type, examTime, shiftChoice, procedure, startTime, endTime, performer, assistant, machine, doctor, status };
@@ -858,7 +877,7 @@
             return '-';
         }     
 
-        // THUẬT TOÁN TỰ PHÂN BỔ CÓ BẪY LỖI CHI TIẾT (DEBUG CONSOLE)
+        // THUẬT TOÁN TỰ PHÂN BỔ CÓ BẪY LỖI CHI TIẾT
         function autoAllocateDaily() {
             if (!verifyAdminPermission()) return;
             if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
@@ -960,7 +979,9 @@
                     let preferredShift = p.shiftChoice || 'auto';
                     let baseStart = preferredShift === 'chieu' ? afternoonStart : morningStart;
 
-                    let examTimeMin = timeToMin(p.examTime || '06:57');
+                    // YÊU CẦU 2: Giờ Khám (ví dụ 11:00 hoặc 15:45) chỉ áp dụng cho LẦN ĐẦU (sessionIdx === 0).
+                    // Các lần tiếp theo (sessionIdx > 0), tự động quay về đầu ca mặc định (7:02 sáng hoặc 13:00 chiều)
+                    let examTimeMin = (item.sessionIdx === 0) ? timeToMin(p.examTime || '06:57') : 0;
                     if (examTimeMin > 0) baseStart = Math.max(baseStart, examTimeMin + 5);
                     if (pKey && patientLastEndMin[pKey]) baseStart = Math.max(baseStart, patientLastEndMin[pKey] + 1);
 
@@ -981,10 +1002,6 @@
                             let testStart = baseStart;
                             let shiftMaxLimit = preferredShift === 'sang' ? morningEndLimit : (preferredShift === 'chieu' ? afternoonEndLimit : afternoonEndLimit);
 
-                            if (perf.toLowerCase().includes('đoan trang')) {
-                                shiftMaxLimit = Math.min(shiftMaxLimit, 16 * 60 + 30);
-                            }
-
                             while (testStart + duration <= shiftMaxLimit) {
                                 if (preferredShift === 'auto' && (testStart + duration > morningEndLimit) && testStart < afternoonStart) {
                                     testStart = afternoonStart;
@@ -992,8 +1009,10 @@
 
                                 let isMachineFree = isSlotAvailable(testStart, duration, occupiedSlots.machines[mKey]);
                                 let isPatientFree = pKey ? isSlotAvailable(testStart, duration, occupiedSlots.patients[pKey]) : true;
-                                let isPerfFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[perf]);
-                                let isAssistFree = (assistant && assistant !== '-') ? isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[assistant]) : true;
+                                
+                                // YÊU CẦU 1: Kiểm tra xem KTV/Bác sĩ có bị vướng khung giờ bận cố định không
+                                let isPerfFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[perf]) && !isDoctorBusySchedule(perf, testStart, setupHandsOnDuration);
+                                let isAssistFree = (assistant && assistant !== '-') ? (isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[assistant]) && !isDoctorBusySchedule(assistant, testStart, setupHandsOnDuration)) : true;
 
                                 if (isMachineFree && isPatientFree && isPerfFree && isAssistFree) {
                                     if (testStart < bestStart) {
