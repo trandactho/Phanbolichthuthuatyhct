@@ -3,18 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.2)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.3)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        input[type="date"] { color-scheme: dark; }
-        .backdrop-blur, .backdrop-blur-sm {
-            -webkit-backdrop-filter: blur(8px);
-            backdrop-filter: blur(8px);
-        }
-        ::-webkit-scrollbar { height: 6px; width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    </style>
+    input[type="date"] { color-scheme: dark; }
+    .backdrop-blur, .backdrop-blur-sm {
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+    ::-webkit-scrollbar { height: 6px; width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* Thêm đoạn này để ẩn huy hiệu Netlify che nút */
+    [netlify-badge], 
+    iframe[src*="netlify"], 
+    .netlify-badge {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+</style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans pb-10">
 
@@ -26,7 +36,7 @@
                 <div>
                     <h1 class="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide flex items-center flex-wrap gap-1.5">
                         <span>PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</span>
-                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.2</span>
+                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.3</span>
                     </h1>
                     <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
                 </div>
@@ -174,7 +184,7 @@
             </div>
             <div class="bg-slate-50 p-4 border-t flex flex-wrap justify-between items-center gap-2 shrink-0">
                 <div class="flex gap-2">
-                    <button onclick="saveWaitingListToCloud()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 shadow-sm">
+                    <button id="btnSaveWaitingCloud" onclick="saveWaitingListToCloud()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 shadow-sm">
                         <span>☁️</span> Lưu DS Chờ
                     </button>
                     <button onclick="loadWaitingListFromCloud()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 shadow-sm">
@@ -348,6 +358,7 @@
         let fetchedDates = {}; 
         let isAdminUnlocked = false; 
         let onlineNow = new Date();
+        let isWaitingListDirty = false; // Biến theo dõi danh sách chờ có thay đổi chưa lưu Cloud hay không
 
         let currentCalYear = new Date().getFullYear();
         let currentCalMonth = new Date().getMonth();
@@ -362,18 +373,15 @@
             return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
         };
 
-        // Kiểm tra lịch bận cố định của Bác sĩ (Đoan Trang & Huyền Trang)
         function isDoctorBusySchedule(staffName, startM, durationM) {
             if (!staffName || staffName === '-' || staffName === '') return false;
             let endM = startM + durationM;
             let nameLower = staffName.toLowerCase();
 
-            // BS Đoan Trang: Bận 8:30 (510p) - 11:30 (690p) và nghỉ sau 16:30 (990p)
             if (nameLower.includes('đoan trang')) {
                 if (!(endM <= 510 || startM >= 690)) return true;
                 if (endM > 990) return true;
             }
-            // BS Huyền Trang: Bận 13:30 (810p) - 16:30 (990p)
             if (nameLower.includes('huyền trang')) {
                 if (!(endM <= 810 || startM >= 990)) return true;
             }
@@ -388,8 +396,32 @@
         }
 
         function updateWaitingBadge() {
+            renderWaitingListSyncStatus();
+        }
+
+        function renderWaitingListSyncStatus() {
+            const btnSave = document.getElementById('btnSaveWaitingCloud');
             const badge = document.getElementById('waitingCountBadge');
-            if (badge) badge.textContent = patientsWaiting.length;
+            
+            if (isWaitingListDirty) {
+                if (btnSave) {
+                    btnSave.className = "px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 shadow-md animate-pulse";
+                    btnSave.innerHTML = "<span>⚠️</span> Lưu DS Chờ (Có thay đổi!)";
+                }
+                if (badge) {
+                    badge.className = "text-amber-300 font-extrabold animate-bounce inline-block";
+                    badge.textContent = `${patientsWaiting.length} • Chưa lưu`;
+                }
+            } else {
+                if (btnSave) {
+                    btnSave.className = "px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 shadow-sm";
+                    btnSave.innerHTML = "<span>☁️</span> Lưu DS Chờ";
+                }
+                if (badge) {
+                    badge.className = "";
+                    badge.textContent = patientsWaiting.length;
+                }
+            }
         }
 
         function sanitizeTreatmentRecord(t) {
@@ -482,11 +514,14 @@
             });
         }
 
-        function saveDataToStorage() {
+        function saveDataToStorage(markAsDirty = true) {
             sanitizeAllData();
             localStorage.setItem('yhct_resourceConfig', JSON.stringify(resourceConfig));
             localStorage.setItem('yhct_patientsWaiting', JSON.stringify(patientsWaiting));
             localStorage.setItem('yhct_treatments', JSON.stringify(allTreatments));
+            if (markAsDirty) {
+                isWaitingListDirty = true;
+            }
             updateWaitingBadge();
         }
 
@@ -552,10 +587,12 @@
             return false;
         }
 
-        function initApp() {
+        async function initApp() {
             loadDataFromStorage();
             initProcedureCheckboxes();
             syncOnlineTime();
+            // Tự động tải Danh sách chờ mới nhất từ Cloud ngay khi khởi chạy ứng dụng
+            await loadWaitingListFromCloud(true);
             setInterval(() => { renderTable(); }, 30000);
         }
 
@@ -691,7 +728,7 @@
                 resourceConfig.machines[mName] = parseInt(inp.value) || 1;
             });
 
-            saveDataToStorage();
+            saveDataToStorage(false);
             populateDoctorDropdown();
             alert('Đã lưu cấu hình nhân sự & thiết bị!');
             closeModal('modalConfigResources');
@@ -729,7 +766,7 @@
                                 <button onclick="openEditWaitingModal(${idx})" class="w-full max-w-[65px] bg-amber-500 hover:bg-amber-600 text-white py-1 px-1.5 rounded-md text-[11px] font-bold shadow-xs flex items-center justify-center gap-0.5">
                                     ✏ Sửa
                                 </button>
-                                <button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(); openWaitingListModal();" class="w-full max-w-[65px] bg-rose-600 hover:bg-rose-700 text-white py-1 px-1.5 rounded-md text-[11px] font-bold shadow-xs flex items-center justify-center gap-0.5">
+                                <button onclick="patientsWaiting.splice(${idx},1); saveDataToStorage(true); openWaitingListModal();" class="w-full max-w-[65px] bg-rose-600 hover:bg-rose-700 text-white py-1 px-1.5 rounded-md text-[11px] font-bold shadow-xs flex items-center justify-center gap-0.5">
                                     🗑 Xóa
                                 </button>
                             </div>
@@ -749,24 +786,29 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ patientsWaiting: patientsWaiting })
                 });
-                alert('☁ Đã lưu danh sách chờ lên Google Sheet!');
+                isWaitingListDirty = false;
+                updateWaitingBadge();
+                alert('☁ Đã lưu thành công danh sách chờ lên Google Sheet!');
             } catch(e) {
                 alert('❌ Lỗi khi lưu danh sách chờ: ' + e.message);
             }
         }
 
-        async function loadWaitingListFromCloud() {
+        async function loadWaitingListFromCloud(isSilent = false) {
             try {
                 const response = await fetch(`${GOOGLE_SHEET_WEB_APP_URL}?action=getWaitingList`);
                 const result = await response.json();
                 if (result && Array.isArray(result.patientsWaiting)) {
                     patientsWaiting = result.patientsWaiting;
-                    saveDataToStorage();
-                    openWaitingListModal();
-                    alert(`🔄 Đã tải ${patientsWaiting.length} bệnh nhân chờ từ Google Sheet!`);
+                    isWaitingListDirty = false;
+                    saveDataToStorage(false);
+                    if (!isSilent) {
+                        openWaitingListModal();
+                        alert(`🔄 Đã tải ${patientsWaiting.length} bệnh nhân chờ từ Google Sheet!`);
+                    }
                 }
             } catch(e) {
-                alert('❌ Lỗi khi tải danh sách chờ: ' + e.message);
+                if (!isSilent) alert('❌ Lỗi khi tải danh sách chờ: ' + e.message);
             }
         }
 
@@ -836,7 +878,7 @@
             }
 
             editingWaitingIndex = -1;
-            saveDataToStorage();            
+            saveDataToStorage(true);            
             closeModal('modalAddPatient');
 
             document.getElementById('pName').value = '';
@@ -877,7 +919,6 @@
             return '-';
         }     
 
-        // THUẬT TOÁN TỰ PHÂN BỔ CÓ BẪY LỖI CHI TIẾT
         function autoAllocateDaily() {
             if (!verifyAdminPermission()) return;
             if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
@@ -979,8 +1020,6 @@
                     let preferredShift = p.shiftChoice || 'auto';
                     let baseStart = preferredShift === 'chieu' ? afternoonStart : morningStart;
 
-                    // YÊU CẦU 2: Giờ Khám (ví dụ 11:00 hoặc 15:45) chỉ áp dụng cho LẦN ĐẦU (sessionIdx === 0).
-                    // Các lần tiếp theo (sessionIdx > 0), tự động quay về đầu ca mặc định (7:02 sáng hoặc 13:00 chiều)
                     let examTimeMin = (item.sessionIdx === 0) ? timeToMin(p.examTime || '06:57') : 0;
                     if (examTimeMin > 0) baseStart = Math.max(baseStart, examTimeMin + 5);
                     if (pKey && patientLastEndMin[pKey]) baseStart = Math.max(baseStart, patientLastEndMin[pKey] + 1);
@@ -1010,7 +1049,6 @@
                                 let isMachineFree = isSlotAvailable(testStart, duration, occupiedSlots.machines[mKey]);
                                 let isPatientFree = pKey ? isSlotAvailable(testStart, duration, occupiedSlots.patients[pKey]) : true;
                                 
-                                // YÊU CẦU 1: Kiểm tra xem KTV/Bác sĩ có bị vướng khung giờ bận cố định không
                                 let isPerfFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[perf]) && !isDoctorBusySchedule(perf, testStart, setupHandsOnDuration);
                                 let isAssistFree = (assistant && assistant !== '-') ? (isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[assistant]) && !isDoctorBusySchedule(assistant, testStart, setupHandsOnDuration)) : true;
 
@@ -1105,7 +1143,7 @@
 
             console.groupEnd();
 
-            saveDataToStorage();
+            saveDataToStorage(true);
             renderTable();
             manualSyncToGoogleSheet();
 
@@ -1271,7 +1309,7 @@
                         count++;
                     });
 
-                    saveDataToStorage();
+                    saveDataToStorage(true);
                     closeModal('modalExcel');
                     openWaitingListModal();
                     alert(`📥 Đã nhập thành công ${count} bệnh nhân vào Danh sách chờ!`);
@@ -1374,7 +1412,7 @@
         function updateTreatmentStatus(dateStr, idx, newStatus) {
             if (allTreatments[dateStr] && allTreatments[dateStr][idx]) {
                 allTreatments[dateStr][idx].status = newStatus;
-                saveDataToStorage();
+                saveDataToStorage(false);
                 renderTable();
             }
         }
@@ -1384,7 +1422,7 @@
             if (confirm("Bạn có chắc chắn muốn xóa dòng này?")) {
                 if (allTreatments[dateStr]) {
                     allTreatments[dateStr].splice(idx, 1);
-                    saveDataToStorage();
+                    saveDataToStorage(false);
                     renderTable();
                 }
             }
@@ -1396,7 +1434,7 @@
             const selectedDate = dateInput ? dateInput.value : getLocalDateStr();
             if (confirm(`Bạn có chắc muốn xóa TOÀN BỘ lịch của ngày ${selectedDate}?`)) {
                 allTreatments[selectedDate] = [];
-                saveDataToStorage();
+                saveDataToStorage(false);
                 renderTable();
             }
         }
