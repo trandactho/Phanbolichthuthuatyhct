@@ -1448,6 +1448,26 @@
         window.onload = function() {
             initApp();
         };
-    </script>
+            // Đoạn script tự động quét và xóa huy hiệu Netlify phát sinh động
+    document.addEventListener("DOMContentLoaded", function() {
+        const removeNetlifyBadge = () => {
+            document.querySelectorAll('iframe, div, a, span').forEach(el => {
+                if (
+                    (el.src && el.src.includes('netlify')) || 
+                    (el.href && el.href.includes('netlify.com/solar-badge')) ||
+                    (el.innerHTML && el.innerHTML.includes('Powered by Netlify')) ||
+                    (el.innerText && el.innerText.includes('Powered by Netlify'))
+                ) {
+                    el.remove();
+                }
+            });
+        };
+
+        removeNetlifyBadge();
+        const observer = new MutationObserver(removeNetlifyBadge);
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+    
+    </script>    
 </body>
 </html>
