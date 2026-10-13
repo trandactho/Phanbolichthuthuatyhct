@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.3)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.4)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -42,7 +42,7 @@
                 <div>
                     <h1 class="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide flex items-center flex-wrap gap-1.5">
                         <span>PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</span>
-                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.3</span>
+                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.4</span>
                     </h1>
                     <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
                 </div>
@@ -875,7 +875,14 @@
                 doctor: doctor || 'BS Trần Thị Đoan Trang'
             };
 
-            if (editingWaitingIndex >= 0) {
+            let existingIndex = patientsWaiting.findIndex(p => p.hsba && p.hsba.toLowerCase() === hsba.toLowerCase() && editingWaitingIndex === -1);
+            if (existingIndex !== -1) {
+                if (!confirm(`⚠️ Mã HSBA "${hsba}" đã có trong danh sách chờ với tên "${patientsWaiting[existingIndex].name}". Bạn có muốn ghi đè/cập nhật không?`)) {
+                    return;
+                }
+                patientsWaiting[existingIndex] = patientData;
+                alert('Đã cập nhật thông tin bệnh nhân trùng HSBA!');
+            } else if (editingWaitingIndex >= 0) {
                 patientsWaiting[editingWaitingIndex] = patientData;
                 alert('Đã cập nhật thông tin bệnh nhân!');
             } else {
@@ -1161,31 +1168,42 @@
         }
 
         async function manualSyncToGoogleSheet() {
-            const dateInput = document.getElementById('currentDate');
-            const selectedDate = dateInput ? dateInput.value : getLocalDateStr();
-            const currentData = allTreatments[selectedDate] || [];
+    if (!verifyAdminPermission()) return;
+    
+    let allDatesKeys = Object.keys(allTreatments).filter(dateKey => Array.isArray(allTreatments[dateKey]) && allTreatments[dateKey].length > 0);
+    
+    if (allDatesKeys.length === 0) {
+        alert('Không có dữ liệu lịch điều trị nào để lưu lên Google Sheet!');
+        return;
+    }
 
-            if (currentData.length === 0) {
-                alert(`Không có dữ liệu lịch điều trị nào trong ngày ${selectedDate} để lưu!`);
-                return;
-            }
+    if (!confirm(`Bạn có muốn đồng bộ toàn bộ lịch điều trị của ${allDatesKeys.length} ngày lên Google Sheet không?`)) {
+        return;
+    }
 
-            try {
-                const response = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        date: selectedDate,
-                        treatments: currentData 
-                    })
-                });
+    try {
+        let successCount = 0;
+        for (let i = 0; i < allDatesKeys.length; i++) {
+            let dateStr = allDatesKeys[i];
+            let currentData = allTreatments[dateStr];
 
-                alert(`☁️ Đã đồng bộ thành công ${currentData.length} lượt điều trị của ngày ${selectedDate} lên Google Sheet!`);
-            } catch (e) {
-                alert('❌ Lỗi khi đồng bộ dữ liệu lên Google Sheet: ' + e.message);
-            }
+            await fetch(GOOGLE_SHEET_WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    date: dateStr,
+                    treatments: currentData 
+                })
+            });
+            successCount++;
         }
+
+        alert(`☁️ Đã đồng bộ thành công lịch điều trị của ${successCount}/${allDatesKeys.length} ngày lên Google Sheet!`);
+    } catch (e) {
+        alert('❌ Lỗi khi đồng bộ dữ liệu lên Google Sheet: ' + e.message);
+    }
+}
 
         async function fetchDataFromCloud(dateStr) {
             if (fetchedDates[dateStr]) return;
