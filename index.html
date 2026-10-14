@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.6)</title>
+    <title>Phần Mềm Chia Giờ Kỹ Thuật YHCT-PHCN (Pro v4.7)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -42,7 +42,7 @@
                 <div>
                     <h1 class="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide flex items-center flex-wrap gap-1.5">
                         <span>PHÒNG KHÁM CHUYÊN KHOA Y HỌC CỔ TRUYỀN</span>
-                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.6</span>
+                        <span class="bg-blue-800 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-blue-700/60 normal-case tracking-normal shrink-0">v4.7</span>
                     </h1>
                     <p class="text-[10px] sm:text-[11px] text-blue-200 whitespace-nowrap">Vật Lý Trị Liệu Phục Hồi Chức Năng — BSCKI Trần Thị Đoan Trang</p>
                 </div>
@@ -547,11 +547,16 @@
         }
 
         function resetAppStorage() {
-            if (confirm("Xóa toàn bộ cache và làm mới ứng dụng?")) {
-                localStorage.clear();
-                location.reload(true);
-            }
+    if (confirm("Xóa bộ nhớ đệm lịch điều trị và làm mới ứng dụng? (Cấu hình Nhân sự & Thiết bị vẫn sẽ được GIỮ NGUYÊN)")) {
+        // Lưu giữ lại cấu hình Nhân sự & Thiết bị trước khi xóa
+        const savedConfig = localStorage.getItem('yhct_resourceConfig');
+        localStorage.clear();
+        if (savedConfig) {
+            localStorage.setItem('yhct_resourceConfig', savedConfig);
         }
+        location.reload(true);
+    }
+}
 
         async function syncOnlineTime() {
             const statusEl = document.getElementById('onlineTimeStatus');
@@ -948,244 +953,245 @@ if (duplicateDates.length > 0) {
         }     
 
                 function autoAllocateDaily() {
-            if (!verifyAdminPermission()) return;
-            if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
+    if (!verifyAdminPermission()) return;
+    if (patientsWaiting.length === 0) { alert('Danh sách chờ đang trống!'); return; }
 
-            console.group("🔍 === BẮT ĐẦU KIỂM TRÁCH VÀ PHÂN BỔ LỊCH ===");
+    console.group("🔍 === BẮT ĐẦU PHÂN BỔ LỊCH (BẢO TỒN CA ĐÃ CÓ) ===");
 
-            let mapDateToPatients = {};
-            patientsWaiting.forEach((p, pIdx) => {
-                (p.dates || []).forEach((dateStr, sessionIdx) => {
-                    if (!mapDateToPatients[dateStr]) mapDateToPatients[dateStr] = [];
-                    (p.procedures || []).forEach(procName => {
-                        mapDateToPatients[dateStr].push({ 
-                            pIndex: pIdx,
-                            patient: p, 
-                            procedure: procName, 
-                            sessionIdx, 
-                            totalSessions: p.dates.length 
-                        });
-                    });
+    let mapDateToPatients = {};
+    patientsWaiting.forEach((p, pIdx) => {
+        (p.dates || []).forEach((dateStr, sessionIdx) => {
+            if (!mapDateToPatients[dateStr]) mapDateToPatients[dateStr] = [];
+            (p.procedures || []).forEach(procName => {
+                mapDateToPatients[dateStr].push({ 
+                    pIndex: pIdx,
+                    patient: p, 
+                    procedure: procName, 
+                    sessionIdx, 
+                    totalSessions: p.dates.length 
                 });
             });
+        });
+    });
 
-            let allocatedPatientKeys = new Set();
-            let unallocatedReport = []; 
+    let allocatedPatientKeys = new Set();
+    let unallocatedReport = []; 
 
-            Object.keys(mapDateToPatients).forEach(targetDateStr => {
-                console.log(`\n📅 --- Đang xử lý ngày: ${targetDateStr} ---`);
-                
-                // 🛠️ SỬA LỖI 1: Reset lịch ngày đó về mảng rỗng trước khi phân bổ mới 
-                // để tránh bị cộng dồn/trùng lặp dòng khi bấm phân bổ nhiều lần.
-                allTreatments[targetDateStr] = [];
+    Object.keys(mapDateToPatients).forEach(targetDateStr => {
+        console.log(`\n📅 --- Đang xử lý ngày: ${targetDateStr} ---`);
 
-                let [yVal, mVal, dVal] = targetDateStr.split('-').map(Number);
-                let dateObj = new Date(yVal, mVal - 1, dVal);
-                let dayOfWeek = dateObj.getDay(); 
+        let [yVal, mVal, dVal] = targetDateStr.split('-').map(Number);
+        let dateObj = new Date(yVal, mVal - 1, dVal);
+        let dayOfWeek = dateObj.getDay(); 
 
-                let morningStart = 7 * 60 + 2;       
-                let morningEndLimit = 12 * 60 + 30;  
-                let afternoonStart = 13 * 60;        
-                let afternoonEndLimit = 19 * 60; 
+        let morningStart = 7 * 60 + 2;       
+        let morningEndLimit = 12 * 60 + 30;  
+        let afternoonStart = 13 * 60;        
+        let afternoonEndLimit = 19 * 60; 
 
-                let existingTreatments = allTreatments[targetDateStr] || [];
-                let occupiedSlots = { machines: {}, patients: {}, staff: {} };
-                let patientLastEndMin = {};
-
-                existingTreatments.forEach(t => {
-                    let startM = timeToMin(t.startTime);
-                    let endM = timeToMin(t.endTime);
-
-                    if (t.machine && t.machine !== '-') {
-                        let mKey = t.machine.replace(/\s+/g, '_');
-                        if (!occupiedSlots.machines[mKey]) occupiedSlots.machines[mKey] = [];
-                        occupiedSlots.machines[mKey].push({ start: startM, end: endM });
-                    }
-
-                    let tPatientKey = (t.hsba && t.hsba !== '-') ? t.hsba.toLowerCase() : (t.name ? t.name.toLowerCase() : '');
-                    if (tPatientKey) {
-                        if (!occupiedSlots.patients[tPatientKey]) occupiedSlots.patients[tPatientKey] = [];
-                        occupiedSlots.patients[tPatientKey].push({ start: startM, end: endM });
-                        if (!patientLastEndMin[tPatientKey] || endM > patientLastEndMin[tPatientKey]) {
-                            patientLastEndMin[tPatientKey] = endM;
-                        }
-                    }
-
-                    [t.performer, t.assistant].forEach(staffName => {
-                        if (staffName && staffName !== '-' && staffName !== '') {
-                            if (!occupiedSlots.staff[staffName]) occupiedSlots.staff[staffName] = [];
-                            occupiedSlots.staff[staffName].push({ start: startM, end: startM + 5 });
-                        }
-                    });
-                });
-
-                const isSlotAvailable = (startM, durationM, occupiedArray) => {
-                    if (!occupiedArray || occupiedArray.length === 0) return true;
-                    let endM = startM + durationM;
-                    return !occupiedArray.some(slot => !(endM <= slot.start || startM >= slot.end));
-                };
-
-                let newDailyTreatments = [];
-
-                mapDateToPatients[targetDateStr].forEach(item => {
-                    let p = item.patient;
-                    let pKey = (p.hsba && p.hsba !== '-') ? p.hsba.toLowerCase() : (p.name ? p.name.toLowerCase() : '');
-                    let procName = item.procedure;
-                    let foundProc = availableProcedures.find(proc => proc.name.toLowerCase() === procName.toLowerCase());
-                    let cat = foundProc ? foundProc.category : procName.split('(')[0].trim();
-                    let duration = foundProc ? foundProc.duration : 15;
-                    let setupHandsOnDuration = 5; 
-
-                    let qualifiedPerformers = getQualifiedPerformers(cat);
-
-                    if (dayOfWeek === 6 || dayOfWeek === 0) {
-                        qualifiedPerformers = qualifiedPerformers.filter(name => !name.toLowerCase().includes('đoan trang'));
-                    }
-                    
-                    if (qualifiedPerformers.length === 0) {
-                        qualifiedPerformers = (resourceConfig.staff || []).map(s => s.name);
-                        if (dayOfWeek === 6 || dayOfWeek === 0) {
-                            qualifiedPerformers = qualifiedPerformers.filter(name => !name.toLowerCase().includes('đoan trang'));
-                        }
-                    }
-
-                    let assistant = getAssistant(cat);
-                    let preferredShift = p.shiftChoice || 'auto';
-                    let baseStart = preferredShift === 'chieu' ? afternoonStart : morningStart;
-
-                    let examTimeMin = (item.sessionIdx === 0) ? timeToMin(p.examTime || '06:57') : 0;
-                    if (examTimeMin > 0) baseStart = Math.max(baseStart, examTimeMin + 5);
-                    if (pKey && patientLastEndMin[pKey]) baseStart = Math.max(baseStart, patientLastEndMin[pKey] + 1);
-
-                    let machineCount = resourceConfig.machines[cat] || 1;
-                    let availableMachineKeys = [];
-                    for (let i = 1; i <= machineCount; i++) {
-                        availableMachineKeys.push(`${cat}_${i}`);
-                    }
-
-                    let bestStart = Infinity;
-                    let bestMachineKey = availableMachineKeys[0];
-                    let chosenPerformer = qualifiedPerformers[0];
-
-                    let failReasons = { machineBusy: 0, patientBusy: 0, staffBusy: 0, outOfTimeLimit: 0 };
-
-                    availableMachineKeys.forEach(mKey => {
-                        qualifiedPerformers.forEach(perf => {
-                            let testStart = baseStart;
-                            let shiftMaxLimit = preferredShift === 'sang' ? morningEndLimit : (preferredShift === 'chieu' ? afternoonEndLimit : afternoonEndLimit);
-
-                            while (testStart + duration <= shiftMaxLimit) {
-                                if (preferredShift === 'auto' && (testStart + duration > morningEndLimit) && testStart < afternoonStart) {
-                                    testStart = afternoonStart;
-                                }
-
-                                let isMachineFree = isSlotAvailable(testStart, duration, occupiedSlots.machines[mKey]);
-                                let isPatientFree = pKey ? isSlotAvailable(testStart, duration, occupiedSlots.patients[pKey]) : true;
-                                
-                                let isPerfFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[perf]) && !isDoctorBusySchedule(perf, testStart, setupHandsOnDuration);
-                                let isAssistFree = (assistant && assistant !== '-') ? (isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[assistant]) && !isDoctorBusySchedule(assistant, testStart, setupHandsOnDuration)) : true;
-
-                                if (isMachineFree && isPatientFree && isPerfFree && isAssistFree) {
-                                    if (testStart < bestStart) {
-                                        bestStart = testStart;
-                                        bestMachineKey = mKey;
-                                        chosenPerformer = perf;
-                                    }
-                                    break; 
-                                } else {
-                                    if (!isMachineFree) failReasons.machineBusy++;
-                                    if (!isPatientFree) failReasons.patientBusy++;
-                                    if (!isPerfFree || !isAssistFree) failReasons.staffBusy++;
-                                }
-
-                                testStart += 5;
-                            }
-                        });
-                    });
-
-                    let startMin = bestStart;
-                    let endMin = startMin + duration;
-
-                    if (startMin !== Infinity) {
-                        if (!occupiedSlots.machines[bestMachineKey]) occupiedSlots.machines[bestMachineKey] = [];
-                        occupiedSlots.machines[bestMachineKey].push({ start: startMin, end: endMin });
-
-                        if (pKey) {
-                            if (!occupiedSlots.patients[pKey]) occupiedSlots.patients[pKey] = [];
-                            occupiedSlots.patients[pKey].push({ start: startMin, end: endMin });
-                            patientLastEndMin[pKey] = endMin;
-                        }
-
-                        [chosenPerformer, assistant].forEach(staffName => {
-                            if (staffName && staffName !== '-') {
-                                if (!occupiedSlots.staff[staffName]) occupiedSlots.staff[staffName] = [];
-                                occupiedSlots.staff[staffName].push({ start: startMin, end: startMin + setupHandsOnDuration });
-                            }
-                        });
-
-                        let sH = Math.floor(startMin / 60), sM = startMin % 60;
-                        let eH = Math.floor(endMin / 60), eM = endMin % 60;
-
-                        newDailyTreatments.push(sanitizeTreatmentRecord({
-                            name: p.name,
-                            hsba: p.hsba,
-                            type: p.type,
-                            examTime: p.examTime || '06:57',
-                            shiftChoice: p.shiftChoice || 'auto',
-                            procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
-                            startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
-                            endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
-                            performer: chosenPerformer,
-                            assistant: assistant,
-                            machine: bestMachineKey.replace('_', ' '),
-                            doctor: p.doctor || 'BS Trần Thị Đoan Trang',
-                            status: 'Chờ thực hiện'
-                        }));
-
-                        allocatedPatientKeys.add(`${pKey}_${targetDateStr}_${procName}`);
-                    } else {
-                        let reasonText = [];
-                        if (qualifiedPerformers.length === 0) reasonText.push("Không có KTV/BS phụ trách");
-                        if (preferredShift === 'sang' && baseStart + duration > morningEndLimit) reasonText.push("Ép ca Sáng nhưng hết giờ ca Sáng");
-                        if (failReasons.machineBusy > 0) reasonText.push("Hết máy trống");
-                        if (failReasons.patientBusy > 0) reasonText.push("Trùng lịch kỹ thuật khác của BN");
-                        if (failReasons.staffBusy > 0) reasonText.push("KTV/BS bận");
-
-                        console.warn(`❌ KHÔNG THỂ PHÂN BỔ: [${p.name} - ${p.hsba}] | Kỹ thuật: ${procName} | Ca chọn: ${preferredShift} | Lý do chính: ${reasonText.join('; ')}`);
-                        unallocatedReport.push(`- BN ${p.name} (${procName}): ${reasonText.join(', ')}`);
-                    }
-                });
-
-                if (newDailyTreatments.length > 0) {
-                    allTreatments[targetDateStr] = newDailyTreatments;
-                }
-
-                if (allTreatments[targetDateStr]) {
-                    allTreatments[targetDateStr].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
-                }
-            });
-
-            patientsWaiting = patientsWaiting.map(p => {
-                let pKey = (p.hsba && p.hsba !== '-') ? p.hsba.toLowerCase() : (p.name ? p.name.toLowerCase() : '');
-                let remainingDates = (p.dates || []).filter(d => {
-                    let remainingProcs = p.procedures.pers || p.procedures.filter(proc => !allocatedPatientKeys.has(`${pKey}_${d}_${proc}`));
-                    return remainingProcs.length > 0;
-                });
-                return { ...p, dates: remainingDates };
-            }).filter(p => p.dates && p.dates.length > 0);
-
-            console.groupEnd();
-
-            saveDataToStorage(true);
-            renderTable();
-            manualSyncToGoogleSheet();
-
-            if (unallocatedReport.length > 0) {
-                alert(`⚠️ Đã phân bổ xong nhưng còn ${unallocatedReport.length} lượt chưa xếp được lịch!\n\nChi tiết nguyên nhân (Xem thêm tại F12 Console):\n` + unallocatedReport.slice(0, 5).join('\n') + (unallocatedReport.length > 5 ? '\n...' : ''));
-            } else {
-                alert('🎉 Đã phân bổ thành công 100% danh sách chờ!');
-            }
+        // 🛠️ GIỮ NGUYÊN CÁC CA ĐÃ PHÂN BỔ TRƯỚC ĐÓ (KHÔNG XÓA SẠCH)
+        if (!allTreatments[targetDateStr]) {
+            allTreatments[targetDateStr] = [];
         }
+        let existingTreatments = allTreatments[targetDateStr];
+
+        let occupiedSlots = { machines: {}, patients: {}, staff: {} };
+        let patientLastEndMin = {};
+
+        // Ghi nhận tất cả các khung giờ đã bị chiếm bởi các ca đã phân bổ trước
+        existingTreatments.forEach(t => {
+            let startM = timeToMin(t.startTime);
+            let endM = timeToMin(t.endTime);
+
+            if (t.machine && t.machine !== '-') {
+                let mKey = t.machine.replace(/\s+/g, '_');
+                if (!occupiedSlots.machines[mKey]) occupiedSlots.machines[mKey] = [];
+                occupiedSlots.machines[mKey].push({ start: startM, end: endM });
+            }
+
+            let tPatientKey = (t.hsba && t.hsba !== '-') ? t.hsba.toLowerCase() : (t.name ? t.name.toLowerCase() : '');
+            if (tPatientKey) {
+                if (!occupiedSlots.patients[tPatientKey]) occupiedSlots.patients[tPatientKey] = [];
+                occupiedSlots.patients[tPatientKey].push({ start: startM, end: endM });
+                if (!patientLastEndMin[tPatientKey] || endM > patientLastEndMin[tPatientKey]) {
+                    patientLastEndMin[tPatientKey] = endM;
+                }
+            }
+
+            [t.performer, t.assistant].forEach(staffName => {
+                if (staffName && staffName !== '-' && staffName !== '') {
+                    if (!occupiedSlots.staff[staffName]) occupiedSlots.staff[staffName] = [];
+                    occupiedSlots.staff[staffName].push({ start: startM, end: startM + 5 });
+                }
+            });
+        });
+
+        const isSlotAvailable = (startM, durationM, occupiedArray) => {
+            if (!occupiedArray || occupiedArray.length === 0) return true;
+            let endM = startM + durationM;
+            return !occupiedArray.some(slot => !(endM <= slot.start || startM >= slot.end));
+        };
+
+        let newDailyTreatments = [];
+
+        mapDateToPatients[targetDateStr].forEach(item => {
+            let p = item.patient;
+            let pKey = (p.hsba && p.hsba !== '-') ? p.hsba.toLowerCase() : (p.name ? p.name.toLowerCase() : '');
+            let procName = item.procedure;
+            let foundProc = availableProcedures.find(proc => proc.name.toLowerCase() === procName.toLowerCase());
+            let cat = foundProc ? foundProc.category : procName.split('(')[0].trim();
+            let duration = foundProc ? foundProc.duration : 15;
+            let setupHandsOnDuration = 5; 
+
+            let qualifiedPerformers = getQualifiedPerformers(cat);
+
+            if (dayOfWeek === 6 || dayOfWeek === 0) {
+                qualifiedPerformers = qualifiedPerformers.filter(name => !name.toLowerCase().includes('đoan trang'));
+            }
+            
+            if (qualifiedPerformers.length === 0) {
+                qualifiedPerformers = (resourceConfig.staff || []).map(s => s.name);
+                if (dayOfWeek === 6 || dayOfWeek === 0) {
+                    qualifiedPerformers = qualifiedPerformers.filter(name => !name.toLowerCase().includes('đoan trang'));
+                }
+            }
+
+            let assistant = getAssistant(cat);
+            let preferredShift = p.shiftChoice || 'auto';
+            let baseStart = preferredShift === 'chieu' ? afternoonStart : morningStart;
+
+            let examTimeMin = (item.sessionIdx === 0) ? timeToMin(p.examTime || '06:57') : 0;
+            if (examTimeMin > 0) baseStart = Math.max(baseStart, examTimeMin + 5);
+            if (pKey && patientLastEndMin[pKey]) baseStart = Math.max(baseStart, patientLastEndMin[pKey] + 1);
+
+            let machineCount = resourceConfig.machines[cat] || 1;
+            let availableMachineKeys = [];
+            for (let i = 1; i <= machineCount; i++) {
+                availableMachineKeys.push(`${cat}_${i}`);
+            }
+
+            let bestStart = Infinity;
+            let bestMachineKey = availableMachineKeys[0];
+            let chosenPerformer = qualifiedPerformers[0];
+
+            let failReasons = { machineBusy: 0, patientBusy: 0, staffBusy: 0, outOfTimeLimit: 0 };
+
+            availableMachineKeys.forEach(mKey => {
+                qualifiedPerformers.forEach(perf => {
+                    let testStart = baseStart;
+                    let shiftMaxLimit = preferredShift === 'sang' ? morningEndLimit : (preferredShift === 'chieu' ? afternoonEndLimit : afternoonEndLimit);
+
+                    while (testStart + duration <= shiftMaxLimit) {
+                        if (preferredShift === 'auto' && (testStart + duration > morningEndLimit) && testStart < afternoonStart) {
+                            testStart = afternoonStart;
+                        }
+
+                        let isMachineFree = isSlotAvailable(testStart, duration, occupiedSlots.machines[mKey]);
+                        let isPatientFree = pKey ? isSlotAvailable(testStart, duration, occupiedSlots.patients[pKey]) : true;
+                        
+                        let isPerfFree = isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[perf]) && !isDoctorBusySchedule(perf, testStart, setupHandsOnDuration);
+                        let isAssistFree = (assistant && assistant !== '-') ? (isSlotAvailable(testStart, setupHandsOnDuration, occupiedSlots.staff[assistant]) && !isDoctorBusySchedule(assistant, testStart, setupHandsOnDuration)) : true;
+
+                        if (isMachineFree && isPatientFree && isPerfFree && isAssistFree) {
+                            if (testStart < bestStart) {
+                                bestStart = testStart;
+                                bestMachineKey = mKey;
+                                chosenPerformer = perf;
+                            }
+                            break; 
+                        } else {
+                            if (!isMachineFree) failReasons.machineBusy++;
+                            if (!isPatientFree) failReasons.patientBusy++;
+                            if (!isPerfFree || !isAssistFree) failReasons.staffBusy++;
+                        }
+
+                        testStart += 5;
+                    }
+                });
+            });
+
+            let startMin = bestStart;
+            let endMin = startMin + duration;
+
+            if (startMin !== Infinity) {
+                if (!occupiedSlots.machines[bestMachineKey]) occupiedSlots.machines[bestMachineKey] = [];
+                occupiedSlots.machines[bestMachineKey].push({ start: startMin, end: endMin });
+
+                if (pKey) {
+                    if (!occupiedSlots.patients[pKey]) occupiedSlots.patients[pKey] = [];
+                    occupiedSlots.patients[pKey].push({ start: startMin, end: endMin });
+                    patientLastEndMin[pKey] = endMin;
+                }
+
+                [chosenPerformer, assistant].forEach(staffName => {
+                    if (staffName && staffName !== '-') {
+                        if (!occupiedSlots.staff[staffName]) occupiedSlots.staff[staffName] = [];
+                        occupiedSlots.staff[staffName].push({ start: startMin, end: startMin + setupHandsOnDuration });
+                    }
+                });
+
+                let sH = Math.floor(startMin / 60), sM = startMin % 60;
+                let eH = Math.floor(endMin / 60), eM = endMin % 60;
+
+                newDailyTreatments.push(sanitizeTreatmentRecord({
+                    name: p.name,
+                    hsba: p.hsba,
+                    type: p.type,
+                    examTime: p.examTime || '06:57',
+                    shiftChoice: p.shiftChoice || 'auto',
+                    procedure: `${procName} (Ngày ${item.sessionIdx+1}/${item.totalSessions})`,
+                    startTime: `${String(sH).padStart(2,'0')}:${String(sM).padStart(2,'0')}`,
+                    endTime: `${String(eH).padStart(2,'0')}:${String(eM).padStart(2,'0')}`,
+                    performer: chosenPerformer,
+                    assistant: assistant,
+                    machine: bestMachineKey.replace('_', ' '),
+                    doctor: p.doctor || 'BS Trần Thị Đoan Trang',
+                    status: 'Chờ thực hiện'
+                }));
+
+                allocatedPatientKeys.add(`${pKey}_${targetDateStr}_${procName}`);
+            } else {
+                let reasonText = [];
+                if (qualifiedPerformers.length === 0) reasonText.push("Không có KTV/BS phụ trách");
+                if (preferredShift === 'sang' && baseStart + duration > morningEndLimit) reasonText.push("Ép ca Sáng nhưng hết giờ ca Sáng");
+                if (failReasons.machineBusy > 0) reasonText.push("Hết máy trống");
+                if (failReasons.patientBusy > 0) reasonText.push("Trùng lịch kỹ thuật khác của BN");
+                if (failReasons.staffBusy > 0) reasonText.push("KTV/BS bận");
+
+                console.warn(`❌ KHÔNG THỂ PHÂN BỔ: [${p.name} - ${p.hsba}] | Kỹ thuật: ${procName} | Ca chọn: ${preferredShift} | Lý do chính: ${reasonText.join('; ')}`);
+                unallocatedReport.push(`- BN ${p.name} (${procName}): ${reasonText.join(', ')}`);
+            }
+        });
+
+        // 🛠️ NỐI THÊM CA MỚI VÀO CÁC CA ĐÃ CÓ TRƯỚC ĐÓ VÀ SẮP XẾP LẠI THEO GIỜ
+        if (newDailyTreatments.length > 0) {
+            allTreatments[targetDateStr] = allTreatments[targetDateStr].concat(newDailyTreatments);
+            allTreatments[targetDateStr].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+        }
+    });
+
+    // Cập nhật loại bỏ các ca đã xếp ra khỏi Danh sách chờ
+    patientsWaiting = patientsWaiting.map(p => {
+        let pKey = (p.hsba && p.hsba !== '-') ? p.hsba.toLowerCase() : (p.name ? p.name.toLowerCase() : '');
+        let remainingDates = (p.dates || []).filter(d => {
+            let remainingProcs = p.procedures.filter(proc => !allocatedPatientKeys.has(`${pKey}_${d}_${proc}`));
+            return remainingProcs.length > 0;
+        });
+        return { ...p, dates: remainingDates };
+    }).filter(p => p.dates && p.dates.length > 0);
+
+    console.groupEnd();
+
+    saveDataToStorage(true);
+    renderTable();
+    manualSyncToGoogleSheet();
+
+    if (unallocatedReport.length > 0) {
+        alert(`⚠️ Đã phân bổ xong nhưng còn ${unallocatedReport.length} lượt chưa xếp được lịch!\n\nChi tiết nguyên nhân (Xem thêm tại F12 Console):\n` + unallocatedReport.slice(0, 5).join('\n') + (unallocatedReport.length > 5 ? '\n...' : ''));
+    } else {
+        alert('🎉 Đã phân bổ các ca mới thành công!');
+    }
+}
 
         async function manualSyncToGoogleSheet() {
     if (!verifyAdminPermission()) return;
